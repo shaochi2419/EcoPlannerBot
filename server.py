@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import itertools
-import numpy as np
 import os
 
 app = Flask(__name__, static_folder='static', static_url_path='')
@@ -286,7 +285,7 @@ def calculate():
             tmin_values = [tmin_min]
         else:
             # 使用 numpy 生成一系列 Tmin 值
-            tmin_values = np.arange(tmin_min, tmin_max + tmin_step/2, tmin_step).tolist()
+            tmin_values = range(int(tmin_min), int(tmin_max) + 1, int(tmin_step))
 
         # 儲存每個 Tmin 值的結果
         all_results = []
