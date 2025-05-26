@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>熱交換網路設計程式</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #22c55e;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            
+            /* 新增顏色變量 */
+            --hot-primary: #ff6b8b;
+            --hot-light: #ffd1dc;
+            --hot-dark: #ff4d6d;
+            --cold-primary: #60a5fa;
+            --cold-light: #dbeafe;
+            --cold-dark: #3b82f6;
+            --solution-primary: #84cc16;
+            --solution-light: #ecfccb;
+            --solution-dark: #65a30d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--card-background);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .stream-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stream-section {
+            background: var(--card-background);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .stream-section h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .stream-group {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+
+        .stream-group:hover {
+            transform: translateY(-2px);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .button {
+            background-color: var(--solution-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .button:hover {
+            background-color: var(--solution-dark);
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .button.secondary:hover {
+            background-color: #475569;
+        }
+
+        .tmin-settings {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .tmin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .results-section {
+            margin-top: 3rem;
+        }
+
+        .result-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-header h3 {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+        }
+
+        .pinch-result {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .pinch-result p {
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .solution-list {
+            margin-top: 1rem;
+        }
+
+        .solution-item {
+            padding: 1rem;
+            border-left: 3px solid var(--solution-primary);
+            margin-bottom: 1rem;
+            background: var(--solution-light);
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .solution-item h4 {
+            color: var(--solution-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .solution-item p {
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .stream-section.hot-section {
+            background: var(--hot-light);
+            border-color: var(--hot-primary);
+        }
+
+        .stream-section.cold-section {
+            background: var(--cold-light);
+            border-color: var(--cold-primary);
+        }
+
+        .stream-section.hot-section h3 {
+            color: var(--hot-dark);
+        }
+
+        .stream-section.cold-section h3 {
+            color: var(--cold-dark);
+        }
+
+        .button.hot-button {
+            background-color: var(--hot-primary);
+        }
+
+        .button.hot-button:hover {
+            background-color: var(--hot-dark);
+        }
+
+        .button.cold-button {
+            background-color: var(--cold-primary);
+        }
+
+        .button.cold-button:hover {
+            background-color: var(--cold-dark);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .stream-container {
+                grid-template-columns: 1fr;
+            }
+
+            .tmin-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>熱交換網路設計程式</h1>
+            <p>輸入流體參數，讓我們為您設計最佳的熱交換網路</p>
+        </div>
+        
+        <div class="card">
+            <h2>參數設定</h2>
+            <p style="margin-bottom: 2rem; color: var(--text-secondary);">溫度單位：°C，CP 單位：kW/°C</p>
+            
+            <div class="stream-container">
+                <div class="stream-section cold-section">
+                    <h3>冷流設定</h3>
+                    <div id="cold-stream-input">
+                        <div class="stream-group">
+                            <div class="input-group">
+                                <label>起始溫度 (°C)</label>
+                                <input type="number" step="0.1" class="cold-Ts">
+                            </div>
+                            <div class="input-group">
+                                <label>終止溫度 (°C)</label>
+                                <input type="number" step="0.1" class="cold-Tt">
+                            </div>
+                            <div class="input-group">
+                                <label>CP 值 (kW/°C)</label>
+                                <input type="number" step="0.1" class="cold-CP">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="button cold-button" onclick="addColdStream()">+ 新增冷流</button>
+                </div>
+
+                <div class="stream-section hot-section">
+                    <h3>熱流設定</h3>
+                    <div id="hot-stream-input">
+                        <div class="stream-group">
+                            <div class="input-group">
+                                <label>起始溫度 (°C)</label>
+                                <input type="number" step="0.1" class="hot-Ts">
+                            </div>
+                            <div class="input-group">
+                                <label>終止溫度 (°C)</label>
+                                <input type="number" step="0.1" class="hot-Tt">
+                            </div>
+                            <div class="input-group">
+                                <label>CP 值 (kW/°C)</label>
+                                <input type="number" step="0.1" class="hot-CP">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="button hot-button" onclick="addHotStream()">+ 新增熱流</button>
+                </div>
+            </div>
+
+            <div class="tmin-settings">
+                <h3 style="margin-bottom: 1.5rem;">Tmin 設定</h3>
+                <div class="tmin-grid">
+                    <div class="input-group">
+                        <label>最小 Tmin (°C)</label>
+                        <input type="number" step="0.1" id="tmin-min" value="10">
+                    </div>
+                    <div class="input-group">
+                        <label>最大 Tmin (°C)</label>
+                        <input type="number" step="0.1" id="tmin-max" value="10">
+                    </div>
+                    <div class="input-group">
+                        <label>Tmin 步進值 (°C)</label>
+                        <input type="number" step="0.1" id="tmin-step" value="1">
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="button" onclick="calculate()">開始計算</button>
+            </div>
+        </div>
+
+        <div id="results" style="display: none;" class="results-section">
+            <div class="card">
+                <h2>計算結果</h2>
+                <div id="hen-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addColdStream() {
+            const template = document.querySelector('#cold-stream-input .stream-group').cloneNode(true);
+            // 清空輸入值
+            template.querySelectorAll('input').forEach(input => input.value = '');
+            document.querySelector('#cold-stream-input').appendChild(template);
+            template.classList.add('fade-in');
+        }
+
+        function addHotStream() {
+            const template = document.querySelector('#hot-stream-input .stream-group').cloneNode(true);
+            // 清空輸入值
+            template.querySelectorAll('input').forEach(input => input.value = '');
+            document.querySelector('#hot-stream-input').appendChild(template);
+            template.classList.add('fade-in');
+        }
+
+        function calculate() {
+            // 收集冷流數據
+            const coldStreams = [];
+            document.querySelectorAll('#cold-stream-input .stream-group').forEach((group, index) => {
+                const Ts = parseFloat(group.querySelector('.cold-Ts').value);
+                const Tt = parseFloat(group.querySelector('.cold-Tt').value);
+                const CP = parseFloat(group.querySelector('.cold-CP').value);
+                if (!isNaN(Ts) && !isNaN(Tt) && !isNaN(CP)) {
+                    coldStreams.push({
+                        id: `C${index + 1}`,
+                        Ts: Ts,
+                        Tt: Tt,
+                        CP: CP
+                    });
+                }
+            });
+
+            // 收集熱流數據
+            const hotStreams = [];
+            document.querySelectorAll('#hot-stream-input .stream-group').forEach((group, index) => {
+                const Ts = parseFloat(group.querySelector('.hot-Ts').value);
+                const Tt = parseFloat(group.querySelector('.hot-Tt').value);
+                const CP = parseFloat(group.querySelector('.hot-CP').value);
+                if (!isNaN(Ts) && !isNaN(Tt) && !isNaN(CP)) {
+                    hotStreams.push({
+                        id: `H${index + 1}`,
+                        Ts: Ts,
+                        Tt: Tt,
+                        CP: CP
+                    });
+                }
+            });
+
+            // 收集 Tmin 設定
+            const tminMin = parseFloat(document.getElementById('tmin-min').value);
+            const tminMax = parseFloat(document.getElementById('tmin-max').value);
+            const tminStep = parseFloat(document.getElementById('tmin-step').value);
+
+            // 顯示載入中的提示
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('hen-results').innerHTML = '<div class="loading">計算中...</div>';
+
+            // 發送請求到後端
+            fetch('http://127.0.0.1:5000/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cold_streams: coldStreams,
+                    hot_streams: hotStreams,
+                    tmin_min: tminMin,
+                    tmin_max: tminMax,
+                    tmin_step: tminStep
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 將流體數據添加到結果中
+                data.hot_streams = hotStreams;
+                data.cold_streams = coldStreams;
+                displayResults(data);
+                // 平滑滾動到結果區域
+                document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('hen-results').innerHTML = 
+                    '<div class="error">計算過程發生錯誤，請檢查輸入數據是否正確。</div>';
+            });
+        }
+
+        // 計算對數平均溫差 (LMTD)
+        function calculateLMTD(T1, T2) {
+            // 如果溫差相等，直接返回溫差值
+            if (Math.abs(T1 - T2) < 0.0001) {
+                return Math.max(T1, 1); // 確保最小值為 1°C
+            }
+            
+            // 確保所有溫差為正值
+            T1 = Math.abs(T1);
+            T2 = Math.abs(T2);
+            
+            // 計算 LMTD
+            const lmtd = (T1 - T2) / Math.log(T1 / T2);
+            
+            // 確保 LMTD 不小於 1°C
+            return Math.max(lmtd, 1);
+        }
+
+        // 計算熱交換器面積
+        function calculateArea(Q, LMTD, U = 0.8) {
+            // 移除 1000 的轉換，直接使用 kW
+            return Q / (U * LMTD);
+        }
+
+        // 計算熱交換器成本
+        function calculateCost(area) {
+            return 800 + 300 * Math.pow(area, 0.8);
+        }
+
+        // 計算解決方案的總成本
+        function calculateSolutionCost(solution, hotStreams, coldStreams) {
+            let totalCost = 0;
+            let totalArea = 0;
+
+            // 確保所有必要的數據都存在
+            if (!solution || !hotStreams || !coldStreams) {
+                console.error('Missing required data for cost calculation');
+                return { cost: 0, area: 0 };
+            }
+
+            // 計算 Pinch 點以上的熱交換器成本
+            if (solution.exch_above) {
+                solution.exch_above.forEach(exchange => {
+                    const [hotId, coldId, Q] = exchange;
+                    const hot = hotStreams.find(s => s.id === hotId);
+                    const cold = coldStreams.find(s => s.id === coldId);
+                    
+                    if (!hot || !cold) {
+                        console.error(`Cannot find streams for exchange: ${hotId} - ${coldId}`);
+                        return;
+                    }
+                    
+                    // 計算熱端和冷端的溫差
+                    const T1 = hot.Ts - cold.Tt;  // 熱端溫差
+                    const T2 = hot.Tt - cold.Ts;  // 冷端溫差
+                    
+                    const LMTD = calculateLMTD(T1, T2);
+                    const area = calculateArea(Q, LMTD);
+                    totalArea += area;
+                    totalCost += calculateCost(area);
+                });
+            }
+
+            // 計算 Pinch 點以下的熱交換器成本
+            if (solution.exch_below) {
+                solution.exch_below.forEach(exchange => {
+                    const [hotId, coldId, Q] = exchange;
+                    const hot = hotStreams.find(s => s.id === hotId);
+                    const cold = coldStreams.find(s => s.id === coldId);
+                    
+                    if (!hot || !cold) {
+                        console.error(`Cannot find streams for exchange: ${hotId} - ${coldId}`);
+                        return;
+                    }
+                    
+                    // 計算熱端和冷端的溫差
+                    const T1 = hot.Ts - cold.Tt;  // 熱端溫差
+                    const T2 = hot.Tt - cold.Ts;  // 冷端溫差
+                    
+                    const LMTD = calculateLMTD(T1, T2);
+                    const area = calculateArea(Q, LMTD);
+                    totalArea += area;
+                    totalCost += calculateCost(area);
+                });
+            }
+
+            return { cost: totalCost, area: totalArea };
+        }
+
+        function displayResults(data) {
+            const henResults = document.getElementById('hen-results');
+            henResults.innerHTML = '';
+
+            // 找出成本最低的解決方案
+            let minCost = Infinity;
+            let bestTmin = null;
+            
+            // 確保 data 和 results 存在
+            if (!data || !data.results) {
+                console.error('No results data available');
+                return;
+            }
+
+            // 確保流體數據存在
+            if (!data.hot_streams || !data.cold_streams) {
+                console.error('Missing stream data in data object:', data);
+                return;
+            }
+
+            // 先計算所有解決方案的成本
+            data.results.forEach(result => {
+                if (result.solution_count > 0 && result.hen_solutions) {
+                    result.hen_solutions.forEach(solution => {
+                        const { cost, area } = calculateSolutionCost(solution, data.hot_streams, data.cold_streams);
+                        if (cost < minCost) {
+                            minCost = cost;
+                            bestTmin = result.tmin;
+                        }
+                        // 將成本和面積添加到解決方案對象中
+                        solution.total_cost = cost;
+                        solution.total_area = area;
+                    });
+                }
+            });
+
+            // 添加樣式
+            const style = document.createElement('style');
+            style.textContent = `
+                .loading {
+                    text-align: center;
+                    padding: 2rem;
+                    color: var(--text-secondary);
+                }
+                .error {
+                    text-align: center;
+                    padding: 2rem;
+                    color: #ef4444;
+                    background: #fee2e2;
+                    border-radius: 0.5rem;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // 顯示結果
+            data.results.forEach((result, resultIndex) => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'result-card fade-in';
+                resultCard.style.animationDelay = `${resultIndex * 0.1}s`;
+                
+                // 添加最佳解標記
+                const isBest = result.tmin === bestTmin ? 
+                    '<span style="color: var(--success-color); margin-left: 10px;">🏆 最佳成本解</span>' : '';
+
+                resultCard.innerHTML = `
+                    <div class="result-header">
+                        <h3>Tmin = ${result.tmin}°C ${isBest}</h3>
+                        <span style="color: var(--text-secondary);">解決方案數量: ${result.solution_count}</span>
+                    </div>
+                    <div class="pinch-result">
+                        <p>🔥 最小外部加熱需求：${result.pinch_result.heating_duty.toFixed(2)} kW</p>
+                        <p>❄️ 最小外部冷卻需求：${result.pinch_result.cooling_duty.toFixed(2)} kW</p>
+                        <p>📍 Pinch 溫度：熱流 ${result.pinch_result.pinch_temps[0].toFixed(2)}°C / 冷流 ${result.pinch_result.pinch_temps[1].toFixed(2)}°C</p>
+                    </div>
+                `;
+
+                if (result.solution_count > 0 && result.hen_solutions) {
+                    const solutionList = document.createElement('div');
+                    solutionList.className = 'solution-list';
+
+                    result.hen_solutions.forEach((solution, index) => {
+                        const solutionItem = document.createElement('div');
+                        solutionItem.className = 'solution-item fade-in';
+                        solutionItem.style.animationDelay = `${(resultIndex * 0.1 + index * 0.05)}s`;
+                        
+                        solutionItem.innerHTML = `
+                            <h4>解決方案 ${index + 1}</h4>
+                            <p>➤ Pinch 上熱交換: ${formatExchanges(solution.exch_above)}</p>
+                            <p>➤ Pinch 下熱交換: ${formatExchanges(solution.exch_below)}</p>
+                            <p>➤ 外部加熱器需求: ${formatUtilities(solution.ext_heating)}</p>
+                            <p>➤ 外部冷卻器需求: ${formatUtilities(solution.ext_cooling)}</p>
+                            <p>📏 總熱交換面積: ${solution.total_area.toFixed(2)} m²</p>
+                            <p>💰 結構成本: ${solution.total_cost.toFixed(2)} 元</p>
+                        `;
+                        
+                        solutionList.appendChild(solutionItem);
+                    });
+
+                    resultCard.appendChild(solutionList);
+                }
+
+                henResults.appendChild(resultCard);
+            });
+        }
+
+        function formatExchanges(exchanges) {
+            if (!exchanges || exchanges.length === 0) return "無";
+            return exchanges.map(e => `${e[0]} ↔ ${e[1]} (${e[2].toFixed(1)} kW)`).join(', ');
+        }
+
+        function formatUtilities(utilities) {
+            if (!utilities || Object.keys(utilities).length === 0) return "無";
+            return Object.entries(utilities).map(([id, value]) => `${id}: ${value.toFixed(1)} kW`).join(', ');
+        }
+    </script>
+</body>
+</html> 

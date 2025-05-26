@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>熱交換網路設計程式</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #22c55e;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            
+            /* 新增顏色變量 */
+            --hot-primary: #ff6b8b;
+            --hot-light: #ffd1dc;
+            --hot-dark: #ff4d6d;
+            --cold-primary: #60a5fa;
+            --cold-light: #dbeafe;
+            --cold-dark: #3b82f6;
+            --solution-primary: #84cc16;
+            --solution-light: #ecfccb;
+            --solution-dark: #65a30d;
+        }
+
+        /* 新增 PTP 圖相關樣式 */
+        #ptp-canvas {
+            width: 100%;
+            height: 600px;
+            margin-bottom: 1rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .ptp-info {
+            display: flex;
+            justify-content: space-around;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .ptp-info-item {
+            text-align: center;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            min-width: 200px;
+        }
+
+        .ptp-info-item > div:first-child {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .ptp-info-item > div:last-child {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .ptp-info-item.heating {
+            background: #fee2e2;
+            color: #e11d48;
+        }
+
+        .ptp-info-item.cooling {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .ptp-info-item.pinch {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--card-background);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .stream-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stream-section {
+            background: var(--card-background);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .stream-section h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .stream-group {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .stream-group:hover {
+            transform: translateY(-2px);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .input-group input {
+            width: 160px;
+            min-width: 120px;
+            max-width: 100%;
+            box-sizing: border-box;
+            height: 2.2em;
+            font-size: 1.15em;
+            padding: 0.5em 0.7em;
+            border-radius: 0.5em;
+            border: 1.5px solid var(--border-color);
+            margin: 0 0.1em;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .button {
+            background-color: var(--solution-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .button:hover {
+            background-color: var(--solution-dark);
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .button.secondary:hover {
+            background-color: #475569;
+        }
+
+        .results-section {
+            margin-top: 3rem;
+        }
+
+        .result-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-header h3 {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+        }
+
+        .pinch-result {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .pinch-result p {
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .solution-list {
+            margin-top: 1rem;
+        }
+
+        .solution-item {
+            padding: 1rem;
+            border-left: 3px solid var(--solution-primary);
+            margin-bottom: 1rem;
+            background: var(--solution-light);
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .solution-item h4 {
+            color: var(--solution-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .solution-item p {
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .stream-section.hot-section {
+            background: var(--hot-light);
+            border-color: var(--hot-primary);
+        }
+
+        .stream-section.cold-section {
+            background: var(--cold-light);
+            border-color: var(--cold-primary);
+        }
+
+        .stream-section.hot-section h3 {
+            color: var(--hot-dark);
+        }
+
+        .stream-section.cold-section h3 {
+            color: var(--cold-dark);
+        }
+
+        .button.hot-button {
+            background-color: var(--hot-primary);
+        }
+
+        .button.hot-button:hover {
+            background-color: var(--hot-dark);
+        }
+
+        .button.cold-button {
+            background-color: var(--cold-primary);
+        }
+
+        .button.cold-button:hover {
+            background-color: var(--cold-dark);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .stream-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .calculation-details {
+            font-family: monospace;
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+        }
+        .temperature-intervals {
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .temperature-scale {
+            position: relative;
+            height: 200px;
+            margin: 20px 40px;
+            border-left: 2px solid #333;
+        }
+        .temp-mark {
+            position: absolute;
+            left: 0;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+        }
+        .temp-mark::before {
+            content: '';
+            width: 8px;
+            height: 2px;
+            background: #333;
+            margin-right: 5px;
+            margin-left: -4px;
+        }
+        .stream-temp {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+        }
+        .hot-stream {
+            color: #ef4444;
+            right: 100%;
+            margin-right: 10px;
+        }
+        .cold-stream {
+            color: #3b82f6;
+            left: 100%;
+            margin-left: 10px;
+        }
+        .shifted-temp {
+            opacity: 0.6;
+            font-style: italic;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+        .error {
+            text-align: center;
+            padding: 2rem;
+            color: #ef4444;
+            background: #fee2e2;
+            border-radius: 0.5rem;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: white;
+        }
+        .show-details-btn {
+            display: block;
+            width: 100%;
+            margin: 1.2em 0 0.5em 0;
+            padding: 0.9em 0;
+            font-size: 1.1em;
+            background: var(--solution-primary);
+            color: #fff;
+            border: none;
+            border-radius: 0.6em;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+        .show-details-btn:hover {
+            background: var(--solution-dark);
+            box-shadow: var(--shadow-lg);
+        }
+        .details-container {
+            margin-top: 0.5em;
+        }
+        .analysis-container {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .analysis-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .analysis-content {
+            background: var(--background-color);
+            padding: 2rem;
+            border-radius: 1rem;
+        }
+
+        .analysis-section {
+            background: var(--background-color);
+            padding: 2rem;
+            border-radius: 1rem;
+            display: none;
+        }
+
+        .analysis-section h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+        }
+
+        .tmin-info {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-right: 2rem;
+        }
+
+        .analysis-layout {
+            display: flex;
+            flex-direction: row;
+            gap: 2rem;
+        }
+        .analysis-sidebar {
+            width: 180px;
+            min-width: 140px;
+            background: #f1f5f9;
+            border-radius: 1rem;
+            box-shadow: 2px 0 8px #e2e8f0;
+            padding: 2rem 0.5rem 2rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1.2rem;
+            height: fit-content;
+        }
+        .analysis-main {
+            flex: 1;
+        }
+        .input-summary-card { margin-bottom: 2rem; }
+        .delete-stream-btn {
+            position: static;
+            font-size: 1.5em;
+            color: #e11d48;
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin: 0 0.2em;
+            transition: color 0.2s;
+            vertical-align: middle;
+        }
+        .delete-stream-btn:hover {
+            color: #b91c1c;
+        }
+        /* 放大表格輸入欄與字體 */
+        #cold-stream-table input, #hot-stream-table input {
+            width: 160px;
+            min-width: 120px;
+            max-width: 100%;
+            box-sizing: border-box;
+            height: 2.2em;
+            font-size: 1.15em;
+            padding: 0.5em 0.7em;
+            border-radius: 0.5em;
+            border: 1.5px solid var(--border-color);
+            margin: 0 0.1em;
+        }
+        #cold-stream-table th, #cold-stream-table td,
+        #hot-stream-table th, #hot-stream-table td {
+            font-size: 1.13em;
+            padding: 0.7em 0.5em;
+            width: 20%;
+            word-break: break-all;
+        }
+        #cold-stream-table, #hot-stream-table {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            table-layout: fixed;
+        }
+        @media (max-width: 900px) {
+            #cold-stream-table, #hot-stream-table {
+                font-size: 0.92em;
+            }
+            #cold-stream-table th, #cold-stream-table td,
+            #hot-stream-table th, #hot-stream-table td {
+                font-size: 0.95em;
+                padding: 0.4em 0.2em;
+            }
+            #cold-stream-table input, #hot-stream-table input {
+                font-size: 0.95em;
+                padding: 0.2em 0.2em;
+                height: 1.7em;
+            }
+        }
+        .stream-table-wrapper { width:100%; overflow-x:auto; }
+        #stream-table { width:100%; border-collapse:separate; border-spacing:0; }
+        #stream-table th, #stream-table td { font-size:1.13em; padding:0.7em 0.5em; text-align:center; }
+        #stream-table input { width:100%; min-width:60px; max-width:100%; box-sizing:border-box; height:2.2em; font-size:1.15em; padding:0.5em 0.7em; border-radius:0.5em; border:1.5px solid var(--border-color); margin:0 0.1em; }
+        #cold-stream-tbody tr.stream-row { background:var(--cold-light); }
+        #hot-stream-tbody tr.stream-row { background:var(--hot-light); }
+        .delete-stream-btn { font-size:1.5em; color:#e11d48; background:none; border:none; cursor:pointer; margin:0 0.2em; transition:color 0.2s; vertical-align:middle; }
+        .delete-stream-btn:hover { color:#b91c1c; }
+        @media (max-width:900px) { #stream-table th, #stream-table td { font-size:0.95em; padding:0.4em 0.2em; } #stream-table input { font-size:0.95em; padding:0.2em 0.2em; height:1.7em; } }
+
+        .button.cold-button, .button.hot-button {
+            min-width: 150px;      /* 增加最小寬度 */
+            white-space: nowrap;   /* 不允許換行 */
+            font-size: 1.13em;
+            font-weight: 600;
+            border-radius: 1.5em;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 8px #b6d4fe33;
+            padding: 0.3em 2.5em;
+        }
+        .button.cold-button {
+            background: linear-gradient(90deg, #60a5fa 60%, #3b82f6 100%);
+            color: #fff;
+        }
+        .button.hot-button {
+            background: linear-gradient(90deg, #ff6b8b 60%, #ff4d6d 100%);
+            color: #fff;
+        }
+        .button.cold-button:hover {
+            background: #2563eb;
+            color: #fff;
+            box-shadow: 0 4px 16px #60a5fa55;
+        }
+        .button.hot-button:hover {
+            background: #ff4d6d;
+            color: #fff;
+            box-shadow: 0 4px 16px #ff6b8b55;
+        }
+        .hen-container {
+            max-height: 550px;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            margin-top: 1.5rem;
+            background: #f8fafc;
+        }
+        #hen-canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header" style="display: flex; align-items: center; justify-content: space-between; padding: 2rem; position: relative;">
+            <!-- 左側校徽 -->
+            <div style="flex: 0 0 auto; display: flex; align-items: center;">
+                <img src="images/ntnu_logo.png.jpg" alt="NTNU Logo" style="height: 50px; width: auto; margin-right: 2rem;">
+            </div>
+            <!-- 中間標題區 -->
+            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; width: max-content;">
+                <h1 style="margin-bottom: 0.5rem; color: var(--primary-color); font-size: 2.5rem;">EcoPlannerBot</h1>
+                <p style="color: var(--text-secondary); font-size: 1.1rem;">輸入流體參數，讓我們為您設計最佳的熱交換網路</p>
+            </div>
+            <!-- 右側登入區 -->
+            <div style="flex: 0 0 auto; display: flex; align-items: center;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;">
+                    <img src="https://www.gravatar.com/avatar/?d=mp" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>參數設定</h2>
+            <div style="margin-bottom: 0.7rem; color: var(--text-secondary); font-size: 1.08em; font-weight: 500;">冷流:低溫到高溫；熱流:高溫到低溫</div>
+            <p style="margin-bottom: 2rem; color: var(--text-secondary);">溫度單位：°C，CP 單位：kW/°C</p>
+            <div class="stream-table-wrapper">
+                <table id="stream-table" style="width:100%; border-radius:0.5rem; overflow:hidden;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th>編號</th>
+                            <th>起始溫度 (°C)</th>
+                            <th>終止溫度 (°C)</th>
+                            <th>CP 值 (kW/°C)</th>
+                            <th>刪除</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cold-stream-tbody">
+                        <tr><td colspan="4" style="background:var(--cold-light);color:var(--cold-dark);font-weight:bold;text-align:left;">冷流設定</td><td style="background:var(--cold-light);text-align:right;"> <button class='button cold-button' style='padding:0.3em 2.5em;font-size:1em;min-width:140px;' onclick='addColdStream()'>+ 新增冷流</button></td></tr>
+                    </tbody>
+                    <tbody id="hot-stream-tbody">
+                        <tr><td colspan="4" style="background:var(--hot-light);color:var(--hot-dark);font-weight:bold;text-align:left;">熱流設定</td><td style="background:var(--hot-light);text-align:right;"> <button class='button hot-button' style='padding:0.3em 2.5em;font-size:1em;min-width:140px;' onclick='addHotStream()'>+ 新增熱流</button></td></tr>
+                    </tbody>
+                </table>
+                            </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="button" onclick="calculate()">開始計算</button>
+                            </div>
+                </div>
+
+        <div id="results" style="display: none;" class="results-section">
+            <div class="card">
+                <h2>計算結果</h2>
+                <div id="hen-results"></div>
+                </div>
+            </div>
+
+        <div id="analysis-container" class="analysis-container">
+            <div class="analysis-header">
+                <div class="tmin-info">
+                    當前方案 Tmin: <span id="current-tmin">-</span> °C
+                    </div>
+                <div class="analysis-buttons">
+                    <button class="button secondary" onclick="showInputSummaryOnly()">輸入總覽</button>
+                    <button class="button" onclick="showAnalysis('ptp')">PTP分析</button>
+                    <button class="button" onclick="showAnalysis('hen')">HEN分析</button>
+                    <button class="button" onclick="showAnalysis('cost')">成本分析</button>
+                    <button class="button secondary" style="margin-left:2em;" onclick="backToSolutionList()">返回方案選擇</button>
+                    </div>
+                    </div>
+            <div class="analysis-content">
+                <div id="input-summary"></div>
+                <div id="ptp-analysis" class="analysis-section">
+                    <h3>PTP分析</h3>
+                    <div class="ptp-container">
+                        <canvas id="ptp-canvas" width="800" height="600"></canvas>
+                        <div id="ptp-info" class="ptp-info"></div>
+                </div>
+            </div>
+                <div id="hen-analysis" class="analysis-section">
+                    <h3>HEN分析</h3>
+                    <div id="hen-details"></div>
+                    <div class="hen-container">
+                        <canvas id="hen-canvas" width="900" height="400" style="margin-top:1.5rem;"></canvas>
+            </div>
+        </div>
+                <div id="cost-analysis" class="analysis-section">
+                    <h3>成本分析</h3>
+                    <div id="cost-details"></div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 頁面載入時，預設顯示輸入區，隱藏結果區和 sidebar
+        window.addEventListener('DOMContentLoaded', function() {
+            if (!window._coldStreams) window._coldStreams = [{Ts:'',Tt:'',CP:''}];
+            if (!window._hotStreams) window._hotStreams = [{Ts:'',Tt:'',CP:''}];
+            renderStreamTable();
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('analysis-container').style.display = 'none';
+        });
+
+        function renderStreamTable() {
+            // 先同步現有 input 值到 window._coldStreams
+            const coldInputs = document.querySelectorAll('#cold-stream-tbody tr.stream-row');
+            if (coldInputs.length === window._coldStreams.length) {
+                coldInputs.forEach((tr, idx) => {
+                    window._coldStreams[idx].Ts = tr.querySelector('.cold-Ts').value;
+                    window._coldStreams[idx].Tt = tr.querySelector('.cold-Tt').value;
+                    window._coldStreams[idx].CP = tr.querySelector('.cold-CP').value;
+                });
+            }
+            // 同步熱流
+            const hotInputs = document.querySelectorAll('#hot-stream-tbody tr.stream-row');
+            if (hotInputs.length === window._hotStreams.length) {
+                hotInputs.forEach((tr, idx) => {
+                    window._hotStreams[idx].Ts = tr.querySelector('.hot-Ts').value;
+                    window._hotStreams[idx].Tt = tr.querySelector('.hot-Tt').value;
+                    window._hotStreams[idx].CP = tr.querySelector('.hot-CP').value;
+                });
+            }
+            // 重新渲染冷流
+            const coldTbody = document.getElementById('cold-stream-tbody');
+            coldTbody.innerHTML = `<tr><td colspan="4" style="background:var(--cold-light);color:var(--cold-dark);font-weight:bold;text-align:left;">冷流設定</td><td style="background:var(--cold-light);text-align:right;"> <button class='button cold-button' style='padding:0.3em 2.5em;font-size:1em;min-width:140px;' onclick='addColdStream()'>+ 新增冷流</button></td></tr>`;
+            window._coldStreams.forEach((s, idx) => {
+                coldTbody.innerHTML += `<tr class="stream-row">
+                    <td style="font-weight:bold;">C${idx+1}</td>
+                    <td><input type="number" step="0.1" class="cold-Ts" value="${s.Ts}"></td>
+                    <td><input type="number" step="0.1" class="cold-Tt" value="${s.Tt}"></td>
+                    <td><input type="number" step="0.1" class="cold-CP" value="${s.CP}"></td>
+                    <td><button type="button" class="delete-stream-btn" title="刪除此流" onclick="deleteStreamRow('cold',${idx})">❌</button></td>
+                </tr>`;
+            });
+            // 重新渲染熱流
+            const hotTbody = document.getElementById('hot-stream-tbody');
+            hotTbody.innerHTML = `<tr><td colspan="4" style="background:var(--hot-light);color:var(--hot-dark);font-weight:bold;text-align:left;">熱流設定</td><td style="background:var(--hot-light);text-align:right;"> <button class='button hot-button' style='padding:0.3em 2.5em;font-size:1em;min-width:140px;' onclick='addHotStream()'>+ 新增熱流</button></td></tr>`;
+            window._hotStreams.forEach((s, idx) => {
+                hotTbody.innerHTML += `<tr class="stream-row">
+                    <td style="font-weight:bold;">H${idx+1}</td>
+                    <td><input type="number" step="0.1" class="hot-Ts" value="${s.Ts}"></td>
+                    <td><input type="number" step="0.1" class="hot-Tt" value="${s.Tt}"></td>
+                    <td><input type="number" step="0.1" class="hot-CP" value="${s.CP}"></td>
+                    <td><button type="button" class="delete-stream-btn" title="刪除此流" onclick="deleteStreamRow('hot',${idx})">❌</button></td>
+                </tr>`;
+            });
+        }
+
+        function syncStreamInputs() {
+            // 冷流
+            const coldInputs = document.querySelectorAll('#cold-stream-tbody tr.stream-row');
+            if (coldInputs.length === window._coldStreams.length) {
+                coldInputs.forEach((tr, idx) => {
+                    window._coldStreams[idx].Ts = tr.querySelector('.cold-Ts').value;
+                    window._coldStreams[idx].Tt = tr.querySelector('.cold-Tt').value;
+                    window._coldStreams[idx].CP = tr.querySelector('.cold-CP').value;
+                });
+            }
+            // 熱流
+            const hotInputs = document.querySelectorAll('#hot-stream-tbody tr.stream-row');
+            if (hotInputs.length === window._hotStreams.length) {
+                hotInputs.forEach((tr, idx) => {
+                    window._hotStreams[idx].Ts = tr.querySelector('.hot-Ts').value;
+                    window._hotStreams[idx].Tt = tr.querySelector('.hot-Tt').value;
+                    window._hotStreams[idx].CP = tr.querySelector('.hot-CP').value;
+                });
+            }
+        }
+
+        function addColdStream() {
+            syncStreamInputs();
+            window._coldStreams.push({Ts:'',Tt:'',CP:''});
+            renderStreamTable();
+        }
+
+        function addHotStream() {
+            syncStreamInputs();
+            window._hotStreams.push({Ts:'',Tt:'',CP:''});
+            renderStreamTable();
+        }
+
+        function deleteStreamRow(type, idx) {
+            syncStreamInputs();
+            if(type==='cold'){
+                if(window._coldStreams.length>1){window._coldStreams.splice(idx,1);}
+                else {window._coldStreams=[{Ts:'',Tt:'',CP:''}];}
+            }else{
+                if(window._hotStreams.length>1){window._hotStreams.splice(idx,1);}
+                else {window._hotStreams=[{Ts:'',Tt:'',CP:''}];}
+            }
+            renderStreamTable();
+        }
+
+        function calculate() {
+            // 收集冷流數據
+            const coldStreams = [];
+            document.querySelectorAll('#cold-stream-tbody tr.stream-row').forEach((tr, index) => {
+                const Ts = parseFloat(tr.querySelector('.cold-Ts').value);
+                const Tt = parseFloat(tr.querySelector('.cold-Tt').value);
+                const CP = parseFloat(tr.querySelector('.cold-CP').value);
+                if (!isNaN(Ts) && !isNaN(Tt) && !isNaN(CP)) {
+                    coldStreams.push({
+                        id: `C${index + 1}`,
+                        Ts: Ts,
+                        Tt: Tt,
+                        CP: CP
+                    });
+                }
+            });
+
+            // 收集熱流數據
+            const hotStreams = [];
+            document.querySelectorAll('#hot-stream-tbody tr.stream-row').forEach((tr, index) => {
+                const Ts = parseFloat(tr.querySelector('.hot-Ts').value);
+                const Tt = parseFloat(tr.querySelector('.hot-Tt').value);
+                const CP = parseFloat(tr.querySelector('.hot-CP').value);
+                if (!isNaN(Ts) && !isNaN(Tt) && !isNaN(CP)) {
+                    hotStreams.push({
+                        id: `H${index + 1}`,
+                        Ts: Ts,
+                        Tt: Tt,
+                        CP: CP
+                    });
+                }
+            });
+
+            // 固定 Tmin 設定
+            const tminMin = 2;
+            const tminMax = 30;
+            const tminStep = 0.5;
+            // 隱藏輸入區，顯示結果區和 sidebar
+            document.querySelector('.card').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('analysis-container').style.display = 'block';
+            // 顯示載入中的提示
+            document.getElementById('hen-results').innerHTML = '<div class="loading">計算中...</div>';
+            // 發送請求到後端
+            fetch('https://EcoPlannerBot.pythonanywhere.com/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cold_streams: coldStreams,
+                    hot_streams: hotStreams,
+                    tmin_min: tminMin,
+                    tmin_max: tminMax,
+                    tmin_step: tminStep
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                data.hot_streams = hotStreams;
+                data.cold_streams = coldStreams;
+                displayResults(data);
+                document.getElementById('analysis-container').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('hen-results').innerHTML = 
+                    '<div class="error">計算過程發生錯誤，請檢查輸入數據是否正確。</div>';
+            });
+        }
+
+        // 顯示輸入資訊表格
+        function showInputSummaryTable(coldStreams, hotStreams, tminMin, tminMax, tminStep) {
+            let html = '<div class="card" style="margin-bottom:1.5rem;">';
+            html += '<h2>輸入資訊總覽</h2>';
+            html += '<table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">';
+            html += '<tr style="background:#f1f5f9;"><th>類型</th><th>編號</th><th>起始溫度</th><th>終止溫度</th><th>CP</th></tr>';
+            hotStreams.forEach(h => {
+                html += `<tr><td style='color:#e11d48;'>熱流</td><td>${h.id}</td><td>${h.Ts}</td><td>${h.Tt}</td><td>${h.CP}</td></tr>`;
+            });
+            coldStreams.forEach(c => {
+                html += `<tr><td style='color:#2563eb;'>冷流</td><td>${c.id}</td><td>${c.Ts}</td><td>${c.Tt}</td><td>${c.CP}</td></tr>`;
+            });
+            html += '</table>';
+            html += `<div style='margin-bottom:0.5rem;'>Tmin 最小值：<b>${tminMin}</b>，最大值：<b>${tminMax}</b>，步進值：<b>${tminStep}</b></div>`;
+            html += '</div>';
+            // 插入到結果區最前面
+            document.getElementById('hen-results').insertAdjacentHTML('beforebegin', html);
+        }
+
+        // 重新輸入功能
+        function showInputForm() {
+            document.querySelector('.card').style.display = '';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('analysis-container').style.display = 'none';
+            // 移除舊的輸入資訊總覽表格
+            const summary = document.querySelector('#results .card');
+            if(summary && summary.querySelector('h2') && summary.querySelector('h2').textContent.includes('輸入資訊總覽')){
+                summary.remove();
+            }
+        }
+
+        // 計算熱交換器面積
+        function calculateArea(Q, Tmin, hotStream, coldStream, U = 0.1, isAbovePinch = false) {
+            // 取得熱流和冷流的 CP 值
+            const hotCP = hotStream.CP;
+            const coldCP = coldStream.CP;
+            
+            // 確定 Cmin 和 Cmax
+            const Cmin = Math.min(hotCP, coldCP);
+            const Cmax = Math.max(hotCP, coldCP);
+            
+            // 根據是否在 pinch 點上方選擇正確的溫度
+            let Thi, Tci;
+            if (isAbovePinch) {
+                // Pinch 點上方
+                Thi = hotStream.Ts;  // 使用熱流起始溫度
+                Tci = coldStream.Ts;  // 使用冷流起始溫度
+            } else {
+                // Pinch 點下方
+                // 考慮 Tmin，所以熱流溫度要加上 Tmin
+                Thi = 60 + Tmin;  // pinch 點溫度 + Tmin
+                Tci = coldStream.Ts;  // 使用冷流起始溫度
+            }
+            
+            // 計算 Qmax = Cmin * (Thi - Tci)
+            const Qmax = Cmin * (Thi - Tci);
+            if (Qmax <= 0) return NaN; // 防呆：Qmax 不可為 0 或負
+            
+            // 計算熱效率 ε = Q/Qmax
+            const epsilon = Q/Qmax;
+            if (epsilon <= 0 || epsilon >= 1) return NaN; // 防呆：epsilon 不可為 0、負或大於等於 1
+
+            // 計算 NTU
+            let NTU;
+            const Cr = Cmin/Cmax;
+
+            // 根據 Cr 值選擇適當的公式
+            if (Math.abs(Cr - 1) < 1e-6) {
+                NTU = epsilon / (1 - epsilon);
+            } else {
+                const logArg = (1 - epsilon * Cr) / (1 - epsilon);
+                if (logArg <= 0) return NaN; // 防呆：log 內容不可為 0 或負
+                NTU = (1/(Cr - 1)) * Math.log(logArg);
+            }
+
+            // 計算面積 A = (NTU * Cmin) / U
+            const area = (NTU * Cmin) / U;
+            
+            console.log('平板式逆流熱交換器面積計算過程：', {
+                Q_kW: Q,
+                Tmin: Tmin,
+                U: U,
+                hotCP: hotCP,
+                coldCP: coldCP,
+                Cmin: Cmin,
+                Cmax: Cmax,
+                Cr: Cr,
+                Thi: Thi,
+                Tci: Tci,
+                isAbovePinch: isAbovePinch,
+                Qmax: Qmax,
+                epsilon: epsilon,
+                NTU: NTU,
+                area: area,
+                // 詳細計算步驟
+                step1_Cmin: `min(${hotCP}, ${coldCP}) = ${Cmin}`,
+                step2_Cmax: `max(${hotCP}, ${coldCP}) = ${Cmax}`,
+                step3_Cr: `${Cmin}/${Cmax} = ${Cr}`,
+                step4_Qmax: `${Cmin} * (${Thi} - ${Tci}) = ${Qmax}`,
+                step5_epsilon: `${Q}/${Qmax} = ${epsilon}`,
+                step6_NTU: Math.abs(Cr - 1) < 1e-6 ? 
+                    `Cr = 1 時：${epsilon}/(1-${epsilon}) = ${NTU}` :
+                    `Cr ≠ 1 時：(1/(${Cr}-1)) * ln((1-${epsilon}*${Cr})/(1-${epsilon})) = ${NTU}`,
+                step7_area: `(${NTU} * ${Cmin}) / ${U} = ${area}`
+            });
+            
+            return Math.abs(area);
+        }
+
+        // 計算生命週期成本 (LCC)
+        function calculateCost(solution, hotStreams, coldStreams) {
+            // 常數定義
+            const PHX = 50000;  // 熱交換器資本成本 ($/m²)
+            const PH = 0.0003;  // 加熱單位成本 ($/kJ)
+            const PC = 0.00003; // 冷卻單位成本 ($/kJ)
+            const PE = 3.0;     // 電力單位成本 ($/kWh)
+            const T = 8760;     // 年運行時間 (小時)
+            const Y = 20;       // 預期使用年限 (年)
+            const USD_TO_TWD = 32; // 匯率
+
+            // 除錯資訊
+            console.log('計算成本的輸入數據：', {
+                solution,
+                hotStreams,
+                coldStreams
+            });
+
+            // 1. 計算資本成本
+            let totalArea = 0;
+            let totalCost = 0;
+            const C0 = 20000; // 美元
+            const A0 = 9.29; // m²
+            const n = 0.65;
+            const CEPCI_now = 798.6;
+            const CEPCI_base = 550;
+
+            let exchangerCosts = [];
+            // 計算所有熱交換器的總成本
+            let exchangerCount = 0;
+            
+            // 計算 Pinch 點上方的熱交換器成本
+            if (solution.exch_above) {
+                solution.exch_above.forEach(exchange => {
+                    const [hotId, coldId, Q] = exchange;
+                    const hot = hotStreams.find(s => s.id === hotId);
+                    const cold = coldStreams.find(s => s.id === coldId);
+                    if (!hot || !cold) {
+                        console.log('找不到流體：', { hotId, coldId });
+                        return;
+                    }
+                    const area = calculateArea(Q, solution.tmin, hot, cold, 0.1, true);
+                    if (!isNaN(area) && area > 0) {
+                        totalArea += area;
+                        exchangerCount++;
+                        // 計算單一熱交換器成本（新台幣）
+                        const cost = C0 * Math.pow(area / A0, n) * (CEPCI_now / CEPCI_base) * USD_TO_TWD;
+                        exchangerCosts.push(cost);
+                        console.log(`熱交換器 ${hotId}-${coldId} 的面積: ${area.toFixed(2)} m², 成本: ${Math.round(cost)} 元`);
+                    }
+                });
+            }
+
+            // 計算 Pinch 點下方的熱交換器成本
+            if (solution.exch_below) {
+                solution.exch_below.forEach(exchange => {
+                    const [hotId, coldId, Q] = exchange;
+                    const hot = hotStreams.find(s => s.id === hotId);
+                    const cold = coldStreams.find(s => s.id === coldId);
+                    if (!hot || !cold) {
+                        console.log('找不到流體：', { hotId, coldId });
+                        return;
+                    }
+                    const area = calculateArea(Q, solution.tmin, hot, cold, 0.1, false);
+                    if (!isNaN(area) && area > 0) {
+                        totalArea += area;
+                        exchangerCount++;
+                        // 計算單一熱交換器成本（新台幣）
+                        const cost = C0 * Math.pow(area / A0, n) * (CEPCI_now / CEPCI_base) * USD_TO_TWD;
+                        exchangerCosts.push(cost);
+                        console.log(`熱交換器 ${hotId}-${coldId} 的面積: ${area.toFixed(2)} m², 成本: ${Math.round(cost)} 元`);
+                    }
+                });
+            }
+
+            // 計算所有熱交換器的總成本
+            const totalExchangerCost = exchangerCosts.reduce((sum, cost) => sum + cost, 0);
+            console.log('所有熱交換器成本總和：', totalExchangerCost);
+
+            // 2. LCC運營與維護成本計算
+            // 外部加熱/冷卻耗能
+            let QH = 0; // 加熱需求 (kW)
+            let QC = 0; // 冷卻需求 (kW)
+            if (solution.ext_heating) {
+                QH = Object.values(solution.ext_heating).reduce((sum, val) => {
+                    const value = parseFloat(val);
+                    return sum + (isNaN(value) ? 0 : value);
+                }, 0);
+            }
+            if (solution.ext_cooling) {
+                QC = Object.values(solution.ext_cooling).reduce((sum, val) => {
+                    const value = parseFloat(val);
+                    return sum + (isNaN(value) ? 0 : value);
+                }, 0);
+            }
+            if (isNaN(QH)) QH = 0;
+            if (isNaN(QC)) QC = 0;
+            // 單位轉換：kW -> kJ/s
+            // 每年外部加熱/冷卻耗能成本
+            const heatingCostPerJ = 0.001186; // 元/kJ
+            const coolingCostPerJ = 0.0002;   // 元/kJ
+            const secondsPerYear = 3600 * 8760;
+            const heatingYearCost = QH * heatingCostPerJ * secondsPerYear;
+            const coolingYearCost = QC * coolingCostPerJ * secondsPerYear;
+            // 熱交換器泵浦耗能
+            const pumpPower = 1; // kW/台
+            const pumpElectricityPrice = 4.27; // 元/度
+            const pumpYearCost = exchangerCount * pumpPower * 8760 * pumpElectricityPrice;
+            // 每年運營成本
+            const operationYearCost = heatingYearCost + coolingYearCost + pumpYearCost;
+            // 每年維護成本
+            const maintenanceYearCost = totalExchangerCost * 0.03;
+            // 折現率與年限
+            const r = 0.08;
+            const N = 20;
+            // LCC計算
+            let LCC = totalExchangerCost; // 初期建置成本
+            let sum_of_discounted_future_costs = 0;
+            for (let t = 1; t <= N; t++) {
+                const discounted_cost_for_year_t = (operationYearCost + maintenanceYearCost) / Math.pow(1 + r, t);
+                sum_of_discounted_future_costs += discounted_cost_for_year_t;
+            }
+            LCC += sum_of_discounted_future_costs;
+
+            // 顯示 LCC 計算過程
+            console.log('LCC 計算過程：', {
+                totalExchangerCost,
+                operationCost: operationYearCost,
+                maintenanceYearCost,
+                r,
+                N,
+                sum_of_discounted_future_costs,
+                yearlyDiscounts: Array.from({ length: N }, (_, t) => (operationYearCost + maintenanceYearCost) / Math.pow(1 + r, t + 1))
+            });
+            return {
+                cost: LCC,
+                area: totalArea, // 這行雖然還會回傳，但不再顯示
+                capitalCost: totalExchangerCost,
+                operationCost: isNaN(operationYearCost) ? 0 : operationYearCost,
+                maintenanceCost: isNaN(maintenanceYearCost) ? 0 : maintenanceYearCost,
+                LCC: isNaN(LCC) ? 0 : LCC,
+                exchangerCosts: exchangerCosts,
+                discountedFutureCosts: isNaN(sum_of_discounted_future_costs) ? 0 : sum_of_discounted_future_costs
+            };
+        }
+
+        // 計算解決方案的總成本
+        function calculateSolutionCost(solution, hotStreams, coldStreams) {
+            console.log('計算成本的輸入數據：', {
+                solution,
+                hotStreams,
+                coldStreams
+            });
+
+            // 確保所有必要的數據都存在
+            if (!solution || !hotStreams || !coldStreams) {
+                console.error('Missing required data for cost calculation');
+                return { cost: 0, area: 0, capitalCost: 0, operationCost: 0 };
+            }
+
+            return calculateCost(solution, hotStreams, coldStreams);
+        }
+
+        function formatExchanges(exchanges, hotStreams, coldStreams, tmin, isAbovePinch) {
+            if (!exchanges || exchanges.length === 0) return "無";
+            return exchanges.map(e => {
+                const [hotId, coldId, Q] = e;
+                const hot = hotStreams.find(s => s.id === hotId);
+                const cold = coldStreams.find(s => s.id === coldId);
+                const area = calculateArea(Q, tmin, hot, cold, 0.1, isAbovePinch);
+                return `${hotId} ↔ ${coldId} (${Q.toFixed(1)} kW)\n面積: ${area.toFixed(2)} m²`;
+            }).join('\n');
+        }
+
+        function formatExchangerDetails(exchanges, hotStreams, coldStreams, tmin, isAbovePinch) {
+            if (!exchanges || exchanges.length === 0) return "無";
+            // 與 calculateCost 公式一致
+            const C0 = 20000, A0 = 9.29, n = 0.65, CEPCI_now = 798.6, CEPCI_base = 550, USD_TO_TWD = 32;
+            return exchanges.map(e => {
+                const [hotId, coldId, Q] = e;
+                const hot = hotStreams.find(s => s.id === hotId);
+                const cold = coldStreams.find(s => s.id === coldId);
+                const area = calculateArea(Q, tmin, hot, cold, 0.1, isAbovePinch);
+                const cost = Math.round(C0 * Math.pow(area / A0, n) * (CEPCI_now / CEPCI_base) * USD_TO_TWD);
+                return `${hotId} ↔ ${coldId} 面積: ${area.toFixed(2)} m², 成本: ${cost.toLocaleString()} 元`;
+            }).join('<br>');
+        }
+
+        // 繪製溫度區間圖
+        function drawPTPGraph(canvas, data, tmin) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. 準備溫度點（平移後，排序、去重）
+            let temps = [];
+            data.hot_streams.forEach(h => {
+                temps.push(h.Ts - tmin/2);
+                temps.push(h.Tt - tmin/2);
+            });
+            data.cold_streams.forEach(c => {
+                temps.push(c.Ts + tmin/2);
+                temps.push(c.Tt + tmin/2);
+            });
+            temps = Array.from(new Set(temps)).sort((a, b) => b - a);
+
+            // 2. 畫布與座標
+            const margin = {top: 40, bottom: 60, left: 80, right: 450};
+            const width = canvas.width, height = canvas.height;
+            const graphHeight = height - margin.top - margin.bottom;
+
+            // 3. Y座標對應 - 改為平均分配
+            function yOfTemp(temp) {
+                const index = temps.indexOf(temp);
+                return margin.top + (index * graphHeight) / (temps.length - 1);
+            }
+
+            // 4. 計算每個溫度區間的熱量變化
+            const heatChanges = [];
+            let cumulativeHeat = 0;
+            
+            // 先計算每個區間的熱量變化
+            for (let i = 0; i < temps.length - 1; i++) {
+                const T1 = temps[i];
+                const T2 = temps[i + 1];
+                const deltaT = T1 - T2;
+                
+                // 計算熱流貢獻
+                let hotCP = 0;
+                data.hot_streams.forEach(h => {
+                    if (h.Ts - tmin/2 >= T1 && h.Tt - tmin/2 <= T2) {
+                        hotCP += h.CP;
+                    }
+                });
+                
+                // 計算冷流貢獻
+                let coldCP = 0;
+                data.cold_streams.forEach(c => {
+                    if (c.Ts + tmin/2 <= T2 && c.Tt + tmin/2 >= T1) {
+                        coldCP += c.CP;
+                    }
+                });
+                
+                // 計算熱量變化
+                const heatChange = deltaT * (hotCP - coldCP);
+                
+                heatChanges.push({
+                    T1: T1,
+                    T2: T2,
+                    heatChange: heatChange,
+                    cumulativeHeat: 0  // 先設為0，後面再計算
+                });
+            }
+            
+            // 從最上方開始計算累積熱量
+            let minCumulativeHeat = 0;  // 記錄最小的累積熱量
+            for (let i = 0; i < heatChanges.length; i++) {
+                if (i === 0) {
+                    heatChanges[i].cumulativeHeat = 0;  // 最上方溫度點的累積熱量為0
+                } else {
+                    heatChanges[i].cumulativeHeat = heatChanges[i-1].cumulativeHeat + heatChanges[i-1].heatChange;
+                }
+                minCumulativeHeat = Math.min(minCumulativeHeat, heatChanges[i].cumulativeHeat);
+            }
+            
+            // 平移所有累積熱量，使最小值為0
+            const shift = -minCumulativeHeat;  // 需要平移的量
+            heatChanges.forEach(change => {
+                change.cumulativeHeat += shift;
+            });
+            
+            console.log('最終熱量變化結果：', heatChanges);
+
+            // 5. 畫溫度虛線與標籤
+            ctx.setLineDash([6, 6]);
+            ctx.strokeStyle = '#bbb';
+            ctx.lineWidth = 1.2;
+            ctx.font = '14px Arial';
+            ctx.textBaseline = 'middle';
+            
+            // 先收集所有 H=0 的 T1 溫度為 pinchTemps
+            var pinchTemps = [];
+            for (let i = 0; i < heatChanges.length; i++) {
+                if (Math.abs(heatChanges[i].cumulativeHeat) < 1e-6) {
+                    pinchTemps.push(heatChanges[i].T1);
+                }
+            }
+            
+            temps.forEach((temp, index) => {
+                const y = yOfTemp(temp);
+                ctx.beginPath();
+                ctx.moveTo(margin.left, y);
+                ctx.lineTo(width - margin.right, y);
+                // 判斷該溫度是否為 pinch 點（允許浮點誤差）
+                const isPinch = pinchTemps.some(t => Math.abs(t - temp) < 1e-4);
+                if (isPinch) {
+                    ctx.strokeStyle = '#e11d48';
+                    ctx.setLineDash([6, 6]);
+                    ctx.lineWidth = 1.5;
+                } else {
+                    ctx.strokeStyle = '#bbb';
+                    ctx.setLineDash([6, 6]);
+                    ctx.lineWidth = 1.2;
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = isPinch ? '#e11d48' : '#222';
+                ctx.fillText(`${temp.toFixed(1)}°C`, margin.left - 10, y);
+                ctx.textAlign = 'left';
+                ctx.fillStyle = isPinch ? '#e11d48' : '#222';
+                ctx.fillText(`${temp.toFixed(1)}°C`, width - margin.right + 20, y);
+            });
+            ctx.setLineDash([]);
+
+            // 6. 統一流體 X 座標排列
+            const allStreams = [
+                ...data.hot_streams.map(h => ({...h, type: 'hot'})),
+                ...data.cold_streams.map(c => ({...c, type: 'cold'}))
+            ];
+            allStreams.sort((a, b) => (a.type === b.type) ? 0 : (a.type === 'hot' ? -1 : 1));
+            const streamGap = (width - margin.left - margin.right) / (allStreams.length + 1);
+            const streamX0 = margin.left + streamGap;
+
+            // 7. 畫所有流體線段與箭頭
+            allStreams.forEach((s, idx) => {
+                const x = streamX0 + idx * streamGap;
+                let y1, y2;
+                if (s.type === 'hot') {
+                    y1 = yOfTemp(s.Ts - tmin/2);
+                    y2 = yOfTemp(s.Tt - tmin/2);
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#e11d48';
+                    ctx.lineWidth = 4;
+                    ctx.moveTo(x, y1);
+                    ctx.lineTo(x, y2);
+                    ctx.stroke();
+                    // 箭頭
+                    ctx.beginPath();
+                    ctx.fillStyle = '#e11d48';
+                    ctx.moveTo(x, y2);
+                    ctx.lineTo(x - 7, y2 - 14);
+                    ctx.lineTo(x + 7, y2 - 14);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    y1 = yOfTemp(s.Ts + tmin/2);
+                    y2 = yOfTemp(s.Tt + tmin/2);
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#2563eb';
+                    ctx.lineWidth = 4;
+                    ctx.moveTo(x, y1);
+                    ctx.lineTo(x, y2);
+                    ctx.stroke();
+                    // 箭頭
+                    ctx.beginPath();
+                    ctx.fillStyle = '#2563eb';
+                    ctx.moveTo(x, y2);
+                    ctx.lineTo(x - 7, y2 + 14);
+                    ctx.lineTo(x + 7, y2 + 14);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            });
+
+            // 8. 底部流體標註（分散排列，避免重疊）
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            const yLegend = height - margin.bottom + 30;
+            const labelBaseX = streamX0;
+            const labelGap = (width - margin.left - margin.right) / (allStreams.length + 1);
+            allStreams.forEach((s, idx) => {
+                let x = labelBaseX + idx * labelGap;
+                if (allStreams.length > 1) {
+                    x += (idx - (allStreams.length - 1) / 2) * 30;
+                }
+                ctx.fillStyle = s.type === 'hot' ? '#e11d48' : '#2563eb';
+                ctx.fillText(`${s.id} (CP=${s.CP})`, x, yLegend);
+            });
+
+            // 9. 在右側顯示熱量變化與 duty
+            ctx.textAlign = 'left';
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#333';
+            let maxTextWidth = 0;
+            heatChanges.forEach(change => {
+                const deltaHText = `ΔH = ${change.heatChange.toFixed(1)} kW`;
+                const textWidth = ctx.measureText(deltaHText).width;
+                maxTextWidth = Math.max(maxTextWidth, textWidth);
+            });
+            const padding = 20;
+            const boxWidth = maxTextWidth + padding * 2;
+            const boxHeight = 30;
+            const boxX = width - margin.right + 120;
+            const spacing = 50;
+            heatChanges.forEach((change, index) => {
+                const y1 = yOfTemp(change.T1);
+                const y2 = yOfTemp(change.T2);
+                const yMid = (y1 + y2) / 2;
+                // ΔH 框
+                const deltaHText = `ΔH = ${change.heatChange.toFixed(1)} kW`;
+                const boxY = yMid - boxHeight/2;
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+                ctx.textAlign = 'center';
+                const textX = boxX + boxWidth/2;
+                const textY = boxY + boxHeight/2 + 5;
+                ctx.fillStyle = '#333';
+                ctx.fillText(deltaHText, textX, textY);
+                ctx.textAlign = 'left';
+                // H=... 只有 H=0 才紅色
+                ctx.font = '14px Arial';
+                if (Math.abs(change.cumulativeHeat) < 1e-6) {
+                    ctx.fillStyle = '#e11d48';
+                } else {
+                    ctx.fillStyle = '#333';
+                }
+                ctx.fillText(`H = ${change.cumulativeHeat.toFixed(1)} kW`, boxX + boxWidth + spacing, y1);
+                if (index === heatChanges.length - 1) {
+                    const finalCumulativeHeat = change.cumulativeHeat + change.heatChange;
+                    if (Math.abs(finalCumulativeHeat) < 1e-6) {
+                        ctx.fillStyle = '#e11d48';
+                    } else {
+                        ctx.fillStyle = '#333';
+                    }
+                    ctx.fillText(`H = ${finalCumulativeHeat.toFixed(1)} kW`, boxX + boxWidth + spacing, y2);
+                }
+            });
+            // heating/cooling duty 標籤
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left';
+            const firstY = yOfTemp(temps[0]);
+            ctx.fillStyle = '#e11d48';
+            ctx.fillText('heating duty', boxX + boxWidth + spacing, firstY - 20);
+            const lastY = yOfTemp(temps[temps.length - 1]);
+            ctx.fillStyle = '#2563eb';
+            ctx.fillText('cooling duty', boxX + boxWidth + spacing, lastY + 20);
+            // 10. 在圖下方顯示三項分析資訊
+            const ptpInfo = document.getElementById('ptp-info');
+            
+            // 找出 heating duty、cooling duty
+            let heatingDuty = null, coolingDuty = null;
+            if (typeof heatChanges !== 'undefined' && Array.isArray(heatChanges)) {
+                heatingDuty = heatChanges[0]?.cumulativeHeat?.toFixed(1);
+                const last = heatChanges[heatChanges.length-1];
+                coolingDuty = (last ? (last.cumulativeHeat + last.heatChange).toFixed(1) : null);
+            }
+
+            ptpInfo.innerHTML = `
+                <div class="ptp-info-item heating">
+                    <div>🔥 最小外部加熱需求</div>
+                    <div>${heatingDuty !== null ? heatingDuty : '-'} kW</div>
+                </div>
+                <div class="ptp-info-item cooling">
+                    <div>❄️ 最小外部冷卻需求</div>
+                    <div>${coolingDuty !== null ? coolingDuty : '-'} kW</div>
+                </div>
+                <div class="ptp-info-item pinch">
+                    <div>📍 Pinch 溫度</div>
+                    <div>${pinchTemps.length > 0 ? pinchTemps.map(t => t.toFixed(1)).join(', ') : '-'}°C</div>
+                </div>
+            `;
+        }
+
+        function displayResults(data) {
+            const henResults = document.getElementById('hen-results');
+            henResults.innerHTML = '';
+
+            // 檢查是否有多個 pinch 點
+            let multiPinch = false;
+            if (data && data.results && data.results.length > 0) {
+                // 以第一組結果為例，檢查 pinch_result 是否為陣列或有多個 pinch_temps
+                const pinchTemps = data.results[0]?.pinch_result?.pinch_temps;
+                if (Array.isArray(pinchTemps) && pinchTemps.length > 2) {
+                    multiPinch = true;
+                }
+            }
+            if (multiPinch) {
+                henResults.innerHTML += '<div style="background:#fee2e2;color:#b91c1c;padding:1em 1.5em;border-radius:0.5em;margin-bottom:1.5em;font-weight:600;text-align:center;">目前網頁只針對一個PINCH點做處理</div>';
+            }
+
+            // 先移除舊的 back-to-input-bar
+            var oldBackBtn = document.getElementById('back-to-input-bar');
+            if (oldBackBtn) oldBackBtn.remove();
+            // 再插入新的返回輸入按鈕
+            henResults.insertAdjacentHTML('beforebegin', `
+                <div id="back-to-input-bar" style="display: flex; justify-content: flex-end; margin-bottom: 1rem; gap: 1rem;">
+                  <button class="button secondary" style="min-width:120px;" onclick="showInputForm()">返回輸入</button>
+                  <button class="button secondary" style="min-width:140px;" onclick="showCostFormula()">成本參考公式</button>
+                </div>
+            `);
+
+            // 收集所有方案（每個 result 可能有多個 hen_solutions）
+            let allSolutions = [];
+            data.results.forEach((result, resultIndex) => {
+                if (result.solution_count > 0 && result.hen_solutions) {
+                    result.hen_solutions.forEach((solution, idx) => {
+                        // 將 tmin 值添加到 solution 對象中
+                        solution.tmin = result.tmin;
+                        // 計算成本
+                        const { capitalCost, maintenanceCost, LCC, operationCost, exchangerCosts, discountedFutureCosts } = calculateSolutionCost(solution, data.hot_streams, data.cold_streams);
+                        // 檢查所有熱交換器面積與成本是否都為有效正數
+                        let valid = true;
+                        const checkExch = (exchArr, isAbove) => {
+                            if (!exchArr || exchArr.length === 0) return true;
+                            return exchArr.every(e => {
+                                const [hotId, coldId, Q] = e;
+                                const hot = data.hot_streams.find(s => s.id === hotId);
+                                const cold = data.cold_streams.find(s => s.id === coldId);
+                                const area = calculateArea(Q, result.tmin, hot, cold, 0.1, isAbove);
+                                return !isNaN(area) && area > 0;
+                            });
+                        };
+                        // exchangerCosts 也不能有 NaN 或 0
+                        const validCosts = Array.isArray(exchangerCosts) && exchangerCosts.length > 0 && exchangerCosts.every(c => !isNaN(c) && c > 0);
+                        if (!checkExch(solution.exch_above, true) || !checkExch(solution.exch_below, false) || !validCosts) {
+                            valid = false;
+                        }
+                        if (valid) {
+                            allSolutions.push({
+                                tmin: result.tmin,
+                                solution,
+                                capitalCost,
+                                maintenanceCost,
+                                LCC,
+                                operationCost,
+                                discountedFutureCosts // 新增此欄位
+                            });
+                        }
+                    });
+                }
+            });
+
+            // 依 LCC 排序，取前五名
+            allSolutions.sort((a, b) => a.LCC - b.LCC);
+            const topSolutions = allSolutions.slice(0, 5);
+
+            // 暫存 topSolutions 供後續詳情頁使用
+            window._topSolutions = topSolutions;
+            window._hotStreams = data.hot_streams;
+            window._coldStreams = data.cold_streams;
+
+            // 顯示五個最佳方案表格
+            let html = '<table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem;">';
+            html += '<tr style="background:#f1f5f9;"><th>排名</th><th>Tmin</th><th>營運成本</th><th>初始成本</th><th>維護成本</th><th>LCC</th><th>操作</th></tr>';
+            topSolutions.forEach((sol, idx) => {
+                html += `<tr style="text-align:center;">
+                    <td>${idx+1}</td>
+                    <td>${sol.tmin}°C</td>
+                    <td>${Math.round(sol.operationCost).toLocaleString()} 元</td>
+                    <td>${Math.round(sol.capitalCost).toLocaleString()} 元</td>
+                    <td>${Math.round(sol.maintenanceCost).toLocaleString()} 元</td>
+                    <td style="color:var(--success-color);font-weight:bold;">${Math.round(sol.LCC).toLocaleString()} 元</td>
+                    <td><button class="button show-details-btn" onclick="showSolutionDetail(${idx})">查看</button></td>
+                </tr>`;
+            });
+            html += '</table>';
+            henResults.innerHTML = html;
+
+            // 顯示五個最佳方案表格，隱藏分析頁
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('analysis-container').style.display = 'none';
+        }
+
+        function formatUtilities(utilities) {
+            if (!utilities || Object.keys(utilities).length === 0) return "無";
+            return Object.entries(utilities).map(([id, value]) => `${id}: ${value.toFixed(1)} kW`).join(', ');
+        }
+
+        // 動態調整 sidebar card 高度與 header 下緣齊
+        function adjustSidebarCardHeight() {
+            var header = document.querySelector('.header');
+            var sidebarCard = document.getElementById('sidebar-card');
+            if(header && sidebarCard) {
+                var headerRect = header.getBoundingClientRect();
+                var top = headerRect.bottom + window.scrollY;
+                var height = window.innerHeight - top;
+                sidebarCard.style.top = top + 'px';
+                sidebarCard.style.height = height + 'px';
+                sidebarCard.style.minHeight = '200px';
+            }
+        }
+        window.addEventListener('resize', adjustSidebarCardHeight);
+        window.addEventListener('DOMContentLoaded', adjustSidebarCardHeight);
+
+        function showSolutionDetail(index) {
+            // 隱藏五個最佳方案表格
+            document.getElementById('results').style.display = 'none';
+            // 顯示分析容器
+            document.getElementById('analysis-container').style.display = 'block';
+
+            const solution = window._topSolutions[index];
+            // 更新當前 Tmin
+            document.getElementById('current-tmin').textContent = solution.tmin;
+
+            // 輸入資訊總覽
+            function renderInputSummary(coldStreams, hotStreams, tmin) {
+                let inputSummaryDiv = document.getElementById('input-summary');
+                if (!inputSummaryDiv) {
+                    // 若不存在則自動建立並插入 analysis-content 最前面
+                    const analysisContent = document.querySelector('.analysis-content');
+                    inputSummaryDiv = document.createElement('div');
+                    inputSummaryDiv.id = 'input-summary';
+                    analysisContent.insertBefore(inputSummaryDiv, analysisContent.firstChild);
+                }
+                let html = '<div class="card" style="margin-bottom:1.5rem;">';
+                html += '<h2>輸入資訊總覽</h2>';
+                html += '<table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">';
+                html += '<tr style="background:#f1f5f9;"><th>類型</th><th>編號</th><th>起始溫度</th><th>終止溫度</th><th>CP</th></tr>';
+                hotStreams.forEach(h => {
+                    html += `<tr><td style='color:#e11d48;'>熱流</td><td>${h.id}</td><td>${h.Ts}</td><td>${h.Tt}</td><td>${h.CP}</td></tr>`;
+                });
+                coldStreams.forEach(c => {
+                    html += `<tr><td style='color:#2563eb;'>冷流</td><td>${c.id}</td><td>${c.Ts}</td><td>${c.Tt}</td><td>${c.CP}</td></tr>`;
+                });
+                html += '</table>';
+                html += `<div style='margin-bottom:0.5rem;'>Tmin：<b>${tmin}</b> °C</div>`;
+                html += '</div>';
+                inputSummaryDiv.innerHTML = html;
+            }
+            renderInputSummary(window._coldStreams, window._hotStreams, solution.tmin);
+
+            // 取得所有 Pinch 溫度（完全複製 drawPTPGraph 的邏輯）
+            let pinchTemps = [];
+            if (window._hotStreams && window._coldStreams && typeof solution.tmin !== 'undefined') {
+                let temps = [];
+                window._hotStreams.forEach(h => {
+                    temps.push(h.Ts - solution.tmin/2);
+                    temps.push(h.Tt - solution.tmin/2);
+                });
+                window._coldStreams.forEach(c => {
+                    temps.push(c.Ts + solution.tmin/2);
+                    temps.push(c.Tt + solution.tmin/2);
+                });
+                temps = Array.from(new Set(temps)).sort((a, b) => b - a);
+                // 計算每個區間的熱量變化
+                const heatChanges = [];
+                for (let i = 0; i < temps.length - 1; i++) {
+                    const T1 = temps[i];
+                    const T2 = temps[i + 1];
+                    const deltaT = T1 - T2;
+                    let hotCP = 0;
+                    window._hotStreams.forEach(h => {
+                        if (h.Ts - solution.tmin/2 >= T1 && h.Tt - solution.tmin/2 <= T2) hotCP += h.CP;
+                    });
+                    let coldCP = 0;
+                    window._coldStreams.forEach(c => {
+                        if (c.Ts + solution.tmin/2 <= T2 && c.Tt + solution.tmin/2 >= T1) coldCP += c.CP;
+                    });
+                    const heatChange = deltaT * (hotCP - coldCP);
+                    heatChanges.push({ T1, heatChange });
+                }
+                // 累積熱量
+                let cum = 0, minCum = 0;
+                const cumHeats = [0];
+                for (let i = 0; i < heatChanges.length; i++) {
+                    cum += heatChanges[i].heatChange;
+                    cumHeats.push(cum);
+                    minCum = Math.min(minCum, cum);
+                }
+                // 平移
+                for (let i = 0; i < cumHeats.length; i++) cumHeats[i] += -minCum;
+                // 找所有 H=0 的溫度
+                pinchTemps = [];
+                for (let i = 0; i < cumHeats.length; i++) {
+                    if (Math.abs(cumHeats[i]) < 1e-6) pinchTemps.push(temps[i]);
+                }
+            }
+            // HEN 分析內容
+            const henDetails = document.getElementById('hen-details');
+            henDetails.innerHTML = '';
+            const henCanvas = document.getElementById('hen-canvas');
+            if (pinchTemps.length > 1) {
+                henDetails.innerHTML = '<div style="background:#fee2e2;color:#b91c1c;padding:1em 1.5em;border-radius:0.5em;margin-bottom:1.5em;font-weight:600;text-align:center;">目前僅支援單一 Pinch 的HEN 設計</div>';
+                if (henCanvas) henCanvas.style.display = 'none';
+            } else {
+                if (henCanvas) henCanvas.style.display = '';
+                function exchLine(exchArr, isAbove) {
+                    if (!exchArr || exchArr.length === 0) return '<span style="color:#888;">無</span>';
+                    return exchArr.map(e => {
+                        const [hotId, coldId, Q] = e;
+                        const hot = window._hotStreams.find(s => s.id === hotId);
+                        const cold = window._coldStreams.find(s => s.id === coldId);
+                        const area = calculateArea(Q, solution.tmin, hot, cold, 0.1, isAbove);
+                        return `${hotId} ↔ ${coldId} (${Q.toFixed(1)} kW) 面積: ${area.toFixed(2)} m²`;
+                    }).join('<br>');
+                }
+                henDetails.innerHTML = `
+                    <div class="card">
+                        <h4>Pinch 點上方熱交換器</h4>
+                        <div style="margin-bottom:0.5em;">${exchLine(solution.solution.exch_above, true)}</div>
+                        <h4>Pinch 點下方熱交換器</h4>
+                        <div style="margin-bottom:0.5em;">${exchLine(solution.solution.exch_below, false)}</div>
+                        <h4>外部加熱需求</h4>
+                        <div style="margin-bottom:0.5em;">${formatUtilities(solution.solution.ext_heating)}</div>
+                        <h4>外部冷卻需求</h4>
+                        <div>${formatUtilities(solution.solution.ext_cooling)}</div>
+                    </div>
+                `;
+            }
+            // 成本分析內容
+            const costDetails = document.getElementById('cost-details');
+            costDetails.innerHTML = '';
+            if (pinchTemps.length > 1) {
+                costDetails.innerHTML = '<div style="background:#fee2e2;color:#b91c1c;padding:1em 1.5em;border-radius:0.5em;margin-bottom:1.5em;font-weight:600;text-align:center;">目前僅支援單一 Pinch 的成本分析</div>';
+            } else {
+                let exchangerCostHtml = '';
+                let idx = 1;
+                function exchCostLines(exchArr, isAbove) {
+                    if (!exchArr || exchArr.length === 0) return '';
+                    return exchArr.map(e => {
+                        const [hotId, coldId, Q] = e;
+                        const hot = window._hotStreams.find(s => s.id === hotId);
+                        const cold = window._coldStreams.find(s => s.id === coldId);
+                        const area = calculateArea(Q, solution.tmin, hot, cold, 0.1, isAbove);
+                        // 成本計算公式與主程式一致
+                        const C0 = 20000, A0 = 9.29, n = 0.65, CEPCI_now = 798.6, CEPCI_base = 550, USD_TO_TWD = 32;
+                        const cost = Math.round(C0 * Math.pow(area / A0, n) * (CEPCI_now / CEPCI_base) * USD_TO_TWD);
+                        return `<div>熱交換器${idx++}: ${hotId} ↔ ${coldId}，面積: ${area.toFixed(2)} m²，成本: <b>${cost.toLocaleString()}</b> 元</div>`;
+                    }).join('');
+                }
+                if ((solution.solution.exch_above && solution.solution.exch_above.length) || (solution.solution.exch_below && solution.solution.exch_below.length)) {
+                    exchangerCostHtml += exchCostLines(solution.solution.exch_above, true);
+                    exchangerCostHtml += exchCostLines(solution.solution.exch_below, false);
+                }
+                // 新增20年總營運/維護成本
+                const initialCost = Math.round(solution.capitalCost);
+                const cost20Years = Math.round(solution.discountedFutureCosts); // 使用新的折現成本
+                const lcc = Math.round(solution.LCC);
+
+                costDetails.innerHTML = `
+                    <div class="card">
+                        <h4 style="margin-bottom:0.5em;">各熱交換器成本明細</h4>
+                        ${exchangerCostHtml}
+                        <h4 style="margin-top:1.5em;">成本明細</h4>
+                        <table style="width:100%; border-collapse:collapse;">
+                            <tr>
+                                <td style="color:#64748b;">初始成本</td>
+                                <td style="text-align:right;">${initialCost.toLocaleString()} 元</td>
+                            </tr>
+                            <tr>
+                                <td style="color:#64748b;">年營運成本</td>
+                                <td style="text-align:right;">${Math.round(solution.operationCost).toLocaleString()} 元</td>
+                            </tr>
+                            <tr>
+                                <td style="color:#64748b;">年維護成本</td>
+                                <td style="text-align:right;">${Math.round(solution.maintenanceCost).toLocaleString()} 元</td>
+                            </tr>
+                        </table>
+                        <table style="width:100%; border-collapse:collapse; margin-top:1.2em;">
+                            <tr>
+                                <td style="color:#64748b;">初始成本</td>
+                                <td style="text-align:right; color:#e11d48; font-weight:bold;">${initialCost.toLocaleString()} 元</td>
+                            </tr>
+                            <tr>
+                                <td style="color:#64748b;">成本（20年）</td>
+                                <td style="text-align:right; color:#e11d48; font-weight:bold;">${cost20Years.toLocaleString()} 元</td>
+                            </tr>
+                            <tr style="font-weight:bold;">
+                                <td style="color:#22c55e;">生命週期成本 (LCC)</td>
+                                <td style="text-align:right; color:#22c55e; font-weight:bold;">${lcc.toLocaleString()} 元</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // 一開始只顯示 input-summary，隱藏所有分析內容
+            document.getElementById('input-summary').style.display = 'block';
+            document.getElementById('ptp-analysis').style.display = 'none';
+            document.getElementById('hen-analysis').style.display = 'none';
+            document.getElementById('cost-analysis').style.display = 'none';
+            // 新增：自動捲動到分析區塊頂部
+            document.getElementById('analysis-container').scrollIntoView({behavior: 'auto', block: 'start'});
+        }
+
+        function showAnalysis(type) {
+            // 隱藏 input-summary
+            document.getElementById('input-summary').style.display = 'none';
+            // 隱藏所有分析區塊
+            document.getElementById('ptp-analysis').style.display = 'none';
+            document.getElementById('hen-analysis').style.display = 'none';
+            document.getElementById('cost-analysis').style.display = 'none';
+            // 顯示選中的分析區塊
+            document.getElementById(`${type}-analysis`).style.display = 'block';
+            // 如果是 PTP 分析，重新繪製圖表以適應容器大小
+            if (type === 'ptp') {
+                const canvas = document.getElementById('ptp-canvas');
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = 600;
+                drawPTPGraph(canvas, {
+                    hot_streams: window._hotStreams,
+                    cold_streams: window._coldStreams
+                }, window._topSolutions[0].tmin);
+            }
+            if (type === 'hen') {
+                const canvas = document.getElementById('hen-canvas');
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = 400;
+                drawHENGraph(canvas, window._topSolutions[0], window._hotStreams, window._coldStreams);
+            }
+        }
+
+        // 返回五個最佳方案表格
+        function backToSolutionList() {
+            document.getElementById('analysis-container').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            // 回到方案時恢復 input-summary 顯示，分析內容隱藏
+            document.getElementById('input-summary').style.display = 'block';
+            document.getElementById('ptp-analysis').style.display = 'none';
+            document.getElementById('hen-analysis').style.display = 'none';
+            document.getElementById('cost-analysis').style.display = 'none';
+        }
+        window.backToSolutionList = backToSolutionList;
+
+        // 輸入總覽按鈕功能
+        function showInputSummaryOnly() {
+            document.getElementById('input-summary').style.display = 'block';
+            document.getElementById('ptp-analysis').style.display = 'none';
+            document.getElementById('hen-analysis').style.display = 'none';
+            document.getElementById('cost-analysis').style.display = 'none';
+        }
+        window.showInputSummaryOnly = showInputSummaryOnly;
+
+        function drawHENGraph(canvas, solution, hotStreams, coldStreams) {
+            const ctx = canvas.getContext('2d');
+            if (!solution || !solution.solution || !hotStreams || !coldStreams) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = '16px Noto Sans TC, Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText("繪圖所需的資料不完整或格式錯誤。", 20, 50);
+                return;
+            }
+            const henSolution = solution.solution;
+            const streams = [...hotStreams.map(s => ({...s, type: 'hot'})), ...coldStreams.map(s => ({...s, type: 'cold'}))];
+            streams.sort((a, b) => a.type === b.type ? 0 : (a.type === 'hot' ? -1 : 1));
+
+            // 畫布尺寸與間距
+            const margin = {top: 60, bottom: 80, left: 150, right: 220};
+            const baseRowGap = 90;
+            const qValueVerticalSpace = 40;
+            const exchCount = (henSolution.exch_above?.length || 0) + (henSolution.exch_below?.length || 0);
+            const minExchHorizontalSpace = 120;
+
+            // 動態計算寬高
+            let neededCanvasWidth = margin.left + margin.right + 100;
+            if (exchCount > 0) neededCanvasWidth += (exchCount * minExchHorizontalSpace);
+            const parentVisibleWidth = canvas.parentElement.clientWidth > 0 ? canvas.parentElement.clientWidth : 900;
+            canvas.width = Math.max(parentVisibleWidth, neededCanvasWidth);
+
+            let neededCanvasHeight = margin.top + margin.bottom + (streams.length * baseRowGap) + qValueVerticalSpace;
+            canvas.height = Math.max(400, neededCanvasHeight);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const width = canvas.width, height = canvas.height;
+
+            // 主線 X 範圍
+            const mainLineStart = margin.left + 30;
+            const mainLineEnd = width - margin.right - 30;
+
+            // 畫流體主線
+            streams.forEach((s, idx) => {
+                const y = margin.top + (idx * baseRowGap) + (baseRowGap / 2);
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = s.type === 'hot' ? '#e11d48' : '#2563eb';
+                ctx.beginPath();
+                ctx.moveTo(mainLineStart, y);
+                ctx.lineTo(mainLineEnd, y);
+                ctx.stroke();
+                // 箭頭
+                ctx.save();
+                ctx.fillStyle = s.type === 'hot' ? '#e11d48' : '#2563eb';
+                ctx.beginPath();
+                if (s.type === 'hot') {
+                    const x = mainLineEnd;
+                    ctx.moveTo(x + 18, y);
+                    ctx.lineTo(x, y - 8);
+                    ctx.lineTo(x, y + 8);
+                } else {
+                    const x = mainLineStart;
+                    ctx.moveTo(x - 18, y);
+                    ctx.lineTo(x, y - 8);
+                    ctx.lineTo(x, y + 8);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+                // 標註流體名稱與CP
+                ctx.font = 'bold 18px Noto Sans TC, Arial';
+                ctx.fillStyle = s.type === 'hot' ? '#e11d48' : '#2563eb';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${s.id} (CP=${s.CP})`, margin.left - 10, y + 6);
+                // 標註起始/終止溫度
+                ctx.font = '15px Noto Sans TC, Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${s.Ts}°C`, mainLineStart + 5, y - 22);
+                ctx.textAlign = 'right';
+                ctx.fillText(`${s.Tt}°C`, mainLineEnd - 5, y - 22);
+            });
+
+            // 畫熱交換器
+            let exchIdx = 1;
+            const exchGap = (mainLineEnd - mainLineStart) / (exchCount + 1);
+            function drawExch(exchArr) {
+                if (!exchArr) return;
+                exchArr.forEach((e, i) => {
+                    const [hotId, coldId, Q] = e;
+                    const hotIdx = streams.findIndex(s => s.id === hotId);
+                    const coldIdx = streams.findIndex(s => s.id === coldId);
+                    if (hotIdx === -1 || coldIdx === -1) return;
+                    const yHot = margin.top + (hotIdx * baseRowGap) + (baseRowGap / 2);
+                    const yCold = margin.top + (coldIdx * baseRowGap) + (baseRowGap / 2);
+                    const x = mainLineStart + exchIdx * exchGap;
+                    // 圓
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(x, yHot, 13, 0, 2 * Math.PI);
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#222';
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(x, yCold, 13, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.restore();
+                    // 連線
+                    ctx.save();
+                    ctx.strokeStyle = '#222';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, yHot + 13);
+                    ctx.lineTo(x, yCold - 13);
+                    ctx.stroke();
+                    ctx.restore();
+                    // Q值
+                    ctx.font = 'bold 15px Noto Sans TC, Arial';
+                    ctx.fillStyle = '#222';
+                    ctx.textAlign = 'center';
+                    const yOfBottomCircle = Math.max(yHot, yCold);
+                    const qValueYPosition = yOfBottomCircle + 30;
+                    ctx.fillText(`Q=${Q.toFixed(1)} kW`, x, qValueYPosition);
+                    exchIdx++;
+                });
+            }
+            exchIdx = 1;
+            drawExch(henSolution.exch_above);
+            drawExch(henSolution.exch_below);
+
+            // 畫外部加熱/冷卻（直接畫在對應流體線上）
+            function drawUtility(utilities, type) {
+                if (!utilities) return;
+                Object.entries(utilities).forEach(([id, Q]) => {
+                    const idx = streams.findIndex(s => s.id === id);
+                    if (idx === -1) return;
+                    const y = margin.top + (idx * baseRowGap) + (baseRowGap / 2);
+                    let x, color, label;
+                    if (type === 'heater') {
+                        x = mainLineStart + 30; // 離主線起點往右一點
+                        color = '#f59e42';
+                        label = 'H';
+                    } else {
+                        x = mainLineEnd - 30; // 離主線終點往左一點
+                        color = '#a259e6';
+                        label = 'C';
+                    }
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(x, y, 16, 0, 2 * Math.PI);
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = color;
+                    ctx.stroke();
+                    ctx.font = 'bold 16px Noto Sans TC, Arial';
+                    ctx.fillStyle = color;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, x, y + 6);
+                    ctx.font = 'bold 13px Noto Sans TC, Arial';
+                    ctx.fillText(`Q=${Q.toFixed(1)} kW`, x, y + 28);
+                    ctx.restore();
+                });
+            }
+            drawUtility(henSolution.ext_heating, 'heater');
+            drawUtility(henSolution.ext_cooling, 'cooler');
+
+            // 圖例
+            ctx.font = '15px Noto Sans TC, Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#222';
+            ctx.fillText('圖例：', width - margin.right + 30, margin.top);
+            ctx.fillStyle = '#e11d48';
+            ctx.fillRect(width - margin.right + 30, margin.top + 20, 30, 6);
+            ctx.fillStyle = '#222';
+            ctx.fillText('熱流', width - margin.right + 70, margin.top + 25);
+            ctx.fillStyle = '#2563eb';
+            ctx.fillRect(width - margin.right + 30, margin.top + 40, 30, 6);
+            ctx.fillStyle = '#222';
+            ctx.fillText('冷流', width - margin.right + 70, margin.top + 45);
+            // H
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle = '#f59e42';
+            ctx.arc(width - margin.right + 45, margin.top + 70, 15, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.font = 'bold 14px Noto Sans TC, Arial';
+            ctx.fillStyle = '#f59e42';
+            ctx.textAlign = 'left';
+            ctx.fillText('H 外部加熱器', width - margin.right + 70, margin.top + 75);
+            // C
+            ctx.beginPath();
+            ctx.strokeStyle = '#a259e6';
+            ctx.arc(width - margin.right + 45, margin.top + 100, 15, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.fillStyle = '#a259e6';
+            ctx.fillText('C 外部冷卻器', width - margin.right + 70, margin.top + 105);
+            // 黑色圓圈（熱交換器）
+            ctx.beginPath();
+            ctx.strokeStyle = '#222';
+            ctx.arc(width - margin.right + 45, margin.top + 130, 15, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.fillStyle = '#222';
+            ctx.fillText('熱交換器', width - margin.right + 70, margin.top + 135);
+            ctx.restore();
+        }
+
+        function deleteStream(btn) {
+            const group = btn.closest('.stream-group');
+            if (!group) return;
+            // 至少保留一組輸入
+            const parent = group.parentElement;
+            if (parent.querySelectorAll('.stream-group').length > 1) {
+                group.remove();
+            }
+        }
+
+        // 在分析頁分析按鈕列最右側插入返回輸入按鈕
+        // 找到 .analysis-buttons，若沒有則不插入
+        const analysisButtons = document.querySelector('.analysis-buttons');
+        if (analysisButtons && !document.getElementById('back-to-input-analysis-btn')) {
+            const btn = document.createElement('button');
+            btn.className = 'button secondary';
+            btn.id = 'back-to-input-analysis-btn';
+            btn.style.marginLeft = '1.5em';
+            btn.textContent = '返回輸入';
+            btn.onclick = showInputForm;
+            analysisButtons.appendChild(btn);
+        }
+
+        function showCostFormula() {
+            // 先檢查公式區塊是否已存在
+            let formulaDiv = document.getElementById('cost-formula-card');
+            if (formulaDiv) {
+                // 已存在則隱藏並移除
+                formulaDiv.remove();
+                return;
+            }
+            // 公式內容
+            const html = `
+    <div id="cost-formula-card" class="card" style="margin-bottom:1.5rem; background:#f8fafc; border:1.5px solid #2563eb;">
+        <h2 style="color:#2563eb; font-size:1.3rem; margin-bottom:1.2em;">成本參考公式</h2>
+        <div style="margin-bottom:1.2em;"><b>1. Tmin 範圍：</b>2~30°C，步進值為 0.5°C。</div>
+        <div style="margin-bottom:1.2em;"><b>2. 熱交換器面積與成本關係式：</b><br>
+            <span style='font-family:serif; font-size:1.1em;'>
+            C = C₀ × (A/A₀)<sup>n</sup> × (CEPCI<sub>現在</sub> / CEPCI<sub>基準年</sub>)
+            </span><br>
+            <ul style="margin:0.5em 0 0 1.5em; font-size:0.98em;">
+                <li>C：估算的熱交換器成本(NTD)</li>
+                <li>C₀：基準面積 A₀ 下的成本(NTD)，本專題取640,000元</li>
+                <li>A：實際設計面積(m²)</li>
+                <li>A₀：基準面積為(9.29 m²)</li>
+                <li>n：規模指數（通常取 0.6~0.7），本專題取0.65</li>
+                <li>CEPCI 現在：798.6（2024年）</li>
+                <li>CEPCI 基準年：550（2010年）</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:1.2em;"><b>3. 運營成本（外部需求成本）：</b><br>
+            <ul style="margin:0.5em 0 0 1.5em; font-size:0.98em;">
+                <li>冷卻成本 ≈ 0.0002 元/kJ (冷卻水)</li>
+                <li>加熱成本 ≈ 0.001186 元/kJ (電熱)</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:1.2em;"><b>4. 維護成本：</b><br>
+            通常估計為熱交換器購置成本的 2~5%/年，本專題取3%
+        </div>
+        <div><b>5. 標準 LCC（生命週期成本）計算公式：</b><br>
+            <span style='font-family:serif; font-size:1.1em;'>
+            LCC = C<sub>initial</sub> + Σ<sub>t=1</sub><sup>n</sup> [(C<sub>operation,t</sub> + C<sub>maintenance,t</sub>) / (1+r)<sup>t</sup>]
+            </span><br>
+            <ul style="margin:0.5em 0 0 1.5em; font-size:0.98em;">
+                <li>C<sub>initial</sub>：初期建置成本</li>
+                <li>C<sub>operation,t</sub>：第 t 年的運營成本</li>
+                <li>C<sub>maintenance,t</sub>：第 t 年的維護成本</li>
+                <li>r：折現率(通常取 5%~10%)，本專題取8%</li>
+                <li>n：設備壽命年限，本專題取20年</li>
+            </ul>
+        </div>
+    </div>
+    `;
+            // 插入在 back-to-input-bar 下方
+            const bar = document.getElementById('back-to-input-bar');
+            if (bar) {
+                bar.insertAdjacentHTML('afterend', html);
+            }
+        }
+    </script>
+</body>
+<footer style="width:100%;background:#f1f5f9;color:#475569;text-align:center;padding:1.2em 0;font-size:1em;letter-spacing:0.5px;position:relative;z-index:10;box-shadow:0 -2px 8px #e2e8f0;">
+創作者：台師大車能115 許詠媐、陳劭奇　|　指導老師：陳韋任 教授　|　© 2025 本網頁僅供學術用途
+</footer>
+</html> 

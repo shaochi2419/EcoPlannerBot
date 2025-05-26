@@ -1,0 +1,349 @@
+:root {
+    --primary-color: #2563eb;
+    --primary-light: #3b82f6;
+    --primary-dark: #1d4ed8;
+    --secondary-color: #64748b;
+    --success-color: #22c55e;
+    --background-color: #f8fafc;
+    --card-background: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    
+    /* 顏色變量 */
+    --hot-primary: #ff6b8b;
+    --hot-light: #ffd1dc;
+    --hot-dark: #ff4d6d;
+    --cold-primary: #60a5fa;
+    --cold-light: #dbeafe;
+    --cold-dark: #3b82f6;
+    --solution-primary: #84cc16;
+    --solution-light: #ecfccb;
+    --solution-dark: #65a30d;
+}
+
+/* PTP 圖相關樣式 */
+#ptp-canvas {
+    width: 100%;
+    height: 600px;
+    margin-bottom: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow);
+}
+
+.ptp-info {
+    display: flex;
+    justify-content: space-around;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.ptp-info-item {
+    text-align: center;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    min-width: 200px;
+}
+
+.ptp-info-item > div:first-child {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.ptp-info-item > div:last-child {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.ptp-info-item.heating {
+    background: #fee2e2;
+    color: #e11d48;
+}
+
+.ptp-info-item.cooling {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.ptp-info-item.pinch {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    line-height: 1.6;
+    background-color: var(--background-color);
+    color: var(--text-primary);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: var(--card-background);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.header h1 {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.card {
+    background: var(--card-background);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card h2::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+.stream-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.stream-section {
+    background: var(--card-background);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.stream-section h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.stream-group {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.stream-group:hover {
+    transform: translateY(-2px);
+}
+
+.input-group {
+    margin-bottom: 1rem;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--text-secondary);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover {
+    opacity: 0.9;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.result-section {
+    margin-top: 2rem;
+}
+
+.result-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.result-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.result-badge {
+    background: var(--primary-light);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+}
+
+.result-content {
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 0.5rem;
+    }
+    
+    .header {
+        padding: 1.5rem;
+    }
+    
+    .header h1 {
+        font-size: 2rem;
+    }
+    
+    .card {
+        padding: 1.5rem;
+    }
+    
+    .stream-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    .ptp-info {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .ptp-info-item {
+        width: 100%;
+    }
+} 
