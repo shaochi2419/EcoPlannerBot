@@ -5,7 +5,248 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>熱交換網路設計程式</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #22c55e;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            
+            --hot-primary: #ff6b8b;
+            --hot-light: #ffd1dc;
+            --hot-dark: #ff4d6d;
+            --cold-primary: #60a5fa;
+            --cold-light: #dbeafe;
+            --cold-dark: #3b82f6;
+            --solution-primary: #84cc16;
+            --solution-light: #ecfccb;
+            --solution-dark: #65a30d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--card-background);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .stream-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stream-section {
+            background: var(--card-background);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .stream-section h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .stream-group {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+
+        .stream-group:hover {
+            transform: translateY(-2px);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .button {
+            background-color: var(--solution-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            width: 100%;
+        }
+
+        .button:hover {
+            background-color: var(--solution-dark);
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .button.secondary:hover {
+            background-color: #475569;
+        }
+
+        .tmin-settings {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .tmin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-section {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .result-section.visible {
+            display: block;
+        }
+
+        #errorMessage {
+            color: #ef4444;
+            background: #fee2e2;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .delete-stream {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            float: right;
+            padding: 0.25rem;
+            font-size: 1.25rem;
+        }
+
+        .add-stream {
+            background: none;
+            border: 2px dashed var(--border-color);
+            color: var(--text-secondary);
+            width: 100%;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.2s;
+        }
+
+        .add-stream:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -19,109 +260,169 @@
             <div class="stream-container">
                 <div class="stream-section">
                     <h3>熱流資料</h3>
-                    <div id="hot-streams"></div>
-                    <button class="btn-primary" onclick="addStream('hot')">新增熱流</button>
+                    <div id="hotStreams">
+                        <div class="stream-group">
+                            <div class="input-group">
+                                <label>起始溫度 (°C)</label>
+                                <input type="number" class="hot-start" value="170">
+                            </div>
+                            <div class="input-group">
+                                <label>目標溫度 (°C)</label>
+                                <input type="number" class="hot-target" value="60">
+                            </div>
+                            <div class="input-group">
+                                <label>熱容量流率 (kW/°C)</label>
+                                <input type="number" class="hot-cp" value="3">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="add-stream" onclick="addStream('hot')">+ 新增熱流</button>
                 </div>
+
                 <div class="stream-section">
                     <h3>冷流資料</h3>
-                    <div id="cold-streams"></div>
-                    <button class="btn-primary" onclick="addStream('cold')">新增冷流</button>
+                    <div id="coldStreams">
+                        <div class="stream-group">
+                            <div class="input-group">
+                                <label>起始溫度 (°C)</label>
+                                <input type="number" class="cold-start" value="20">
+                            </div>
+                            <div class="input-group">
+                                <label>目標溫度 (°C)</label>
+                                <input type="number" class="cold-target" value="135">
+                            </div>
+                            <div class="input-group">
+                                <label>熱容量流率 (kW/°C)</label>
+                                <input type="number" class="cold-cp" value="2">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="add-stream" onclick="addStream('cold')">+ 新增冷流</button>
                 </div>
             </div>
-            <div class="card">
-                <h2>最小溫差設定</h2>
+
+            <div class="tmin-settings">
                 <div class="input-group">
-                    <label for="tmin">最小溫差 (ΔTmin)</label>
-                    <input type="number" id="tmin" value="10" min="1" step="1">
+                    <label>最小溫度差 (°C)</label>
+                    <input type="number" id="tmin" value="10">
                 </div>
             </div>
-            <div class="button-group">
-                <button class="btn-primary" onclick="calculate()">計算</button>
-                <button class="btn-secondary" onclick="resetAll()">重置</button>
-            </div>
+
+            <button class="button" onclick="calculate()">計算熱交換網路</button>
         </div>
 
-        <div id="results" class="result-section"></div>
+        <div id="errorMessage"></div>
+
+        <div id="results" class="result-section">
+            <!-- 結果將在這裡動態生成 -->
+        </div>
     </div>
 
     <script>
-        let hotStreams = [];
-        let coldStreams = [];
-
         function addStream(type) {
-            const streamContainer = document.getElementById(`${type}-streams`);
-            const streamId = `${type}-${Date.now()}`;
+            const container = document.getElementById(type + 'Streams');
+            const newStream = document.createElement('div');
+            newStream.className = 'stream-group';
             
-            const streamGroup = document.createElement('div');
-            streamGroup.className = 'stream-group';
-            streamGroup.id = streamId;
-            
-            streamGroup.innerHTML = `
-                <button class="delete-btn" onclick="deleteStream('${streamId}')">×</button>
+            const defaultValues = type === 'hot' ? 
+                {start: 170, target: 60, cp: 3} :
+                {start: 20, target: 135, cp: 2};
+
+            newStream.innerHTML = `
+                <button class="delete-stream" onclick="deleteStream(this)">×</button>
                 <div class="input-group">
                     <label>起始溫度 (°C)</label>
-                    <input type="number" class="Ts" step="0.1">
+                    <input type="number" class="${type}-start" value="${defaultValues.start}">
                 </div>
                 <div class="input-group">
                     <label>目標溫度 (°C)</label>
-                    <input type="number" class="Tt" step="0.1">
+                    <input type="number" class="${type}-target" value="${defaultValues.target}">
                 </div>
                 <div class="input-group">
                     <label>熱容量流率 (kW/°C)</label>
-                    <input type="number" class="CP" step="0.1">
+                    <input type="number" class="${type}-cp" value="${defaultValues.cp}">
                 </div>
             `;
             
-            streamContainer.appendChild(streamGroup);
+            container.appendChild(newStream);
         }
 
-        function deleteStream(streamId) {
-            const element = document.getElementById(streamId);
-            if (element) {
-                element.remove();
+        function deleteStream(button) {
+            const streamGroup = button.parentElement;
+            const container = streamGroup.parentElement;
+            
+            if (container.children.length > 1) {
+                container.removeChild(streamGroup);
             }
         }
 
-        function getStreamData(type) {
-            const streams = [];
-            const containers = document.getElementById(`${type}-streams`).getElementsByClassName('stream-group');
-            
-            for (let i = 0; i < containers.length; i++) {
-                const container = containers[i];
-                const Ts = parseFloat(container.querySelector('.Ts').value);
-                const Tt = parseFloat(container.querySelector('.Tt').value);
-                const CP = parseFloat(container.querySelector('.CP').value);
-                
-                if (!isNaN(Ts) && !isNaN(Tt) && !isNaN(CP)) {
-                    streams.push({
-                        id: container.id,
-                        Ts: Ts,
-                        Tt: Tt,
-                        CP: CP
-                    });
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function validateInputs() {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            for (let input of inputs) {
+                if (input.value === '' || isNaN(input.value)) {
+                    showError('請填寫所有欄位，且必須為數字');
+                    return false;
                 }
             }
-            
-            return streams;
+            return true;
         }
 
-        function resetAll() {
-            document.getElementById('hot-streams').innerHTML = '';
-            document.getElementById('cold-streams').innerHTML = '';
-            document.getElementById('results').innerHTML = '';
-            document.getElementById('tmin').value = '10';
+        function getStreamData() {
+            const hotStreams = [];
+            const coldStreams = [];
+            let id = 1;
+
+            document.querySelectorAll('#hotStreams .stream-group').forEach((group, index) => {
+                hotStreams.push({
+                    id: 'H' + (index + 1),
+                    Ts: parseFloat(group.querySelector('.hot-start').value),
+                    Tt: parseFloat(group.querySelector('.hot-target').value),
+                    CP: parseFloat(group.querySelector('.hot-cp').value)
+                });
+            });
+
+            document.querySelectorAll('#coldStreams .stream-group').forEach((group, index) => {
+                coldStreams.push({
+                    id: 'C' + (index + 1),
+                    Ts: parseFloat(group.querySelector('.cold-start').value),
+                    Tt: parseFloat(group.querySelector('.cold-target').value),
+                    CP: parseFloat(group.querySelector('.cold-cp').value)
+                });
+            });
+
+            return { hotStreams, coldStreams };
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="card">
+                    <h2>計算結果</h2>
+                    <div class="result-content">
+                        <p>Pinch 溫度：${data.pinch_temps[0].toFixed(2)}°C (熱) / ${data.pinch_temps[1].toFixed(2)}°C (冷)</p>
+                        <p>最小外部加熱需求：${data.heating_duty.toFixed(2)} kW</p>
+                        <p>最小外部冷卻需求：${data.cooling_duty.toFixed(2)} kW</p>
+                    </div>
+                </div>
+            `;
+            resultsDiv.classList.add('visible');
         }
 
         async function calculate() {
-            const hotStreams = getStreamData('hot');
-            const coldStreams = getStreamData('cold');
+            if (!validateInputs()) return;
+
+            const { hotStreams, coldStreams } = getStreamData();
             const tmin = parseFloat(document.getElementById('tmin').value);
-            
-            if (hotStreams.length === 0 || coldStreams.length === 0) {
-                alert('請至少輸入一個熱流和一個冷流');
-                return;
-            }
-            
+
             try {
                 const response = await fetch('/calculate', {
                     method: 'POST',
@@ -131,66 +432,20 @@
                     body: JSON.stringify({
                         hot_streams: hotStreams,
                         cold_streams: coldStreams,
-                        tmin_min: tmin,
-                        tmin_max: tmin,
-                        tmin_step: 1
+                        tmin: tmin
                     })
                 });
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    alert(data.error);
-                    return;
+
+                if (!response.ok) {
+                    throw new Error('計算過程發生錯誤');
                 }
-                
+
+                const data = await response.json();
                 displayResults(data);
             } catch (error) {
-                console.error('Error:', error);
-                alert('計算過程發生錯誤');
+                showError(error.message);
             }
         }
-
-        function displayResults(data) {
-            const resultsContainer = document.getElementById('results');
-            resultsContainer.innerHTML = '';
-            
-            data.results.forEach((result, index) => {
-                const resultCard = document.createElement('div');
-                resultCard.className = 'result-card';
-                
-                const pinchTemps = result.pinch_result.pinch_temps;
-                const heating = result.pinch_result.heating_duty;
-                const cooling = result.pinch_result.cooling_duty;
-                
-                resultCard.innerHTML = `
-                    <div class="result-header">
-                        <div class="result-title">計算結果 #${index + 1}</div>
-                        <div class="result-badge">ΔTmin = ${result.tmin}°C</div>
-                    </div>
-                    <div class="ptp-info">
-                        <div class="ptp-info-item heating">
-                            <div>最小外部加熱需求</div>
-                            <div>${heating.toFixed(2)} kW</div>
-                        </div>
-                        <div class="ptp-info-item cooling">
-                            <div>最小外部冷卻需求</div>
-                            <div>${cooling.toFixed(2)} kW</div>
-                        </div>
-                        <div class="ptp-info-item pinch">
-                            <div>Pinch 溫度</div>
-                            <div>${pinchTemps[0].toFixed(2)}°C / ${pinchTemps[1].toFixed(2)}°C</div>
-                        </div>
-                    </div>
-                `;
-                
-                resultsContainer.appendChild(resultCard);
-            });
-        }
-
-        // 初始化時新增一個熱流和一個冷流
-        addStream('hot');
-        addStream('cold');
     </script>
 </body>
 </html> 
